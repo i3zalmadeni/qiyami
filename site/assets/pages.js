@@ -193,3 +193,115 @@ PAGES.admin = () => boot("admin.html", async (m, c) => {
   $$("#tb button", m).forEach((b) => (b.onclick = () => { cur = b.dataset.t; $$("#tb button", m).forEach((x) => x.classList.toggle("on", x === b)); draw(); }));
   await draw();
 }, { role: "admin" });
+
+const LV = { school: "المدرسة", local: "محلي", national: "وطني", international: "دولي" };
+const AST = { pending: ["بانتظار التحقق", "warn"], verified: ["موثّق", "ok"], needs_info: ["يحتاج استكمالاً", "warn"], rejected: ["غير معتمد", "bad"] };
+const achItem = (a) => `<div class="item" data-ach="${a.id}" tabindex="0" role="button"><div class="row2"><div><b>${esc(a.title)}</b> ${tbadge(AST[a.status][0], AST[a.status][1])}<br><small>${esc(a.category)} · ${esc(LV[a.level])} · ${esc(fmtDay(a.achieved_on))}</small></div><small>${esc(a.students.map((s) => s.name).slice(0, 3).join("، "))}${a.students.length > 3 ? " +" + (a.students.length - 3) : ""}</small></div></div>`;
+async function openAchievement(id, done) {
+  const md = modal('<p class="sub">جارٍ التحميل…</p>', true);
+  try {
+    const a = await rpc("qm_achievement_get", { p_id: id });
+    md.el.innerHTML = `<div class="row2"><div><h3 style="margin:0">${esc(a.title)}</h3><p class="sub">${esc(a.category)} · ${esc(LV[a.level])}${a.organizer ? " · " + esc(a.organizer) : ""} · ${esc(fmtDay(a.achieved_on))}</p></div><button class="btn sm sec" data-x>إغلاق</button></div>
+    ${tbadge(AST[a.status][0], AST[a.status][1])} <small>سجّله: ${esc(a.recorded_by)}</small>
+    ${a.description ? `<p>${esc(a.description)}</p>` : ""}${a.review_note ? `<p class="sub">ملاحظة المراجعة: ${esc(a.review_note)}</p>` : ""}
+    <h4 class="sec">المتعلمون</h4>${a.students.map((s) => `<div class="item"><b>${esc(s.name)}</b> <small>${esc(s.grade || "")}${s.section ? " · " + esc(s.section) : ""}</small>${s.contribution ? `<p class="sub">${esc(s.contribution)}</p>` : ""}</div>`).join("")}
+    ${a.attachments.length ? `<h4 class="sec">الشواهد</h4>${a.attachments.map((p, i) => `<button class="btn sm sec" data-at="${esc(p)}">${ico("list")}شاهد ${i + 1}</button> `).join("")}` : ""}
+    <div class="acts mt" id="ac"></div>`;
+    $("[data-x]", md.el).onclick = md.close;
+    $$("[data-at]", md.el).forEach((b) => (b.onclick = () => openAttachment(b.dataset.at)));
+    const ac = $("#ac", md.el), act = (label, cls, fn) => { const b = document.createElement("button"); b.className = "btn sm " + cls; b.textContent = label; b.onclick = fn; ac.appendChild(b); };
+    const verify = (d, label, req) => act(label, d === "verified" ? "" : "sec", async () => { const n = await askNote(label, "الملاحظة", req); if (n === null) return; try { await rpc("qm_achievement_verify", { p_id: id, p_decision: d, p_note: n }); md.close(); toast("تم الحفظ"); done && done(); } catch (e) { toast(mapErr(e), true); } });
+    if (a.can_review && a.status !== "verified") verify("verified", "توثيق الإنجاز", false);
+    if (a.can_review && a.status !== "rejected") { verify("needs_info", "طلب استكمال", true); verify("rejected", "عدم الاعتماد", true); }
+    if (a.mine && a.status === "needs_info") act("إرسال الاستكمال", "", async () => { const n = await askNote("استكمال الإنجاز", "وصف إضافي", true); if (n === null) return; try { await rpc("qm_achievement_resubmit", { p_id: id, p_desc: n }); md.close(); toast("أُعيد للتحقق"); done && done(); } catch (e) { toast(mapErr(e), true); } });
+  } catch (e) { md.el.innerHTML = `<p class="err">${esc(mapErr(e))}</p><button class="btn sec" data-x>إغلاق</button>`; $("[data-x]", md.el).onclick = md.close; }
+}
+Object.assign(PAGES, {
+  achievements: () => boot("achievements.html", async (m, ctx) => {
+    const tabs = [["gallery", "معرض الإنجازات"], ["mine", "إنجازاتي"], ["add", "تسجيل إنجاز"], ["talents", "المواهب"]];
+    if (ctx.isAdmin) tabs.splice(2, 0, ["review", "بانتظار التحقق"]);
+    let cur = new URLSearchParams(location.search).get("t"); if (!tabs.some((t) => t[0] === cur)) cur = "gallery";
+    const paint = async () => {
+      m.innerHTML = `<div class="tabs">${tabs.map(([k, n]) => `<button type="button" class="${k === cur ? "on" : ""}" data-t="${k}">${n}</button>`).join("")}</div><div id="tb"></div>`;
+      $$("[data-t]", m).forEach((b) => (b.onclick = () => { cur = b.dataset.t; paint(); }));
+      const tb = $("#tb", m);
+      if (["gallery", "mine", "review"].includes(cur)) {
+        const L = await rpc("qm_achievements_list", { p_scope: cur });
+        tb.innerHTML = L.length ? L.map(achItem).join("") : empty("trophy", "لا إنجازات هنا بعد", cur === "gallery" ? "تظهر هنا الإنجازات الموثقة فقط." : "");
+        tb.onclick = (e) => { const el = e.target.closest("[data-ach]"); if (el) openAchievement(el.dataset.ach, paint); };
+      } else if (cur === "talents") {
+        const [L, st] = [await rpc("qm_talents_list", {}), { s: null }];
+        tb.innerHTML = `<div class="card form"><h4 style="margin-top:0">رصد موهبة</h4><label>المتعلم</label><div id="pk"></div><label>المجال</label><input id="tf" maxlength="80" placeholder="مثل: الإلقاء، البرمجة، كرة القدم"><label>الموهبة أو القدرة</label><input id="tn" maxlength="120"><label>وصف (اختياري)</label><textarea id="td" maxlength="500"></textarea><p class="err" id="te"></p><button class="btn" id="ts">حفظ</button></div>
+        <h4 class="sec">المواهب المرصودة</h4>${L.length ? L.map((t) => `<div class="item"><div class="row2"><div><b>${esc(t.student)}</b> <small>${esc(t.grade || "")}${t.section ? " · " + esc(t.section) : ""}</small><br>${esc(t.field)} · ${esc(t.name)}</div>${t.mine || ctx.isAdmin ? `<button class="btn sm sec" data-ar="${t.id}">أرشفة</button>` : ""}</div>${t.description ? `<p class="sub">${esc(t.description)}</p>` : ""}<small>رصدها: ${esc(t.noted_by)}</small></div>`).join("") : empty("star", "لا مواهب مرصودة")}`;
+        pickerField($("#pk"), st, "s");
+        $("#ts").onclick = async () => { try { if (!st.s) throw new Error("اختر المتعلم."); await rpc("qm_talent_add", { p_student: st.s.id, p_field: $("#tf").value, p_name: $("#tn").value, p_desc: $("#td").value }); toast("تم الحفظ"); paint(); } catch (e) { $("#te").textContent = mapErr(e); } };
+        $$("[data-ar]", tb).forEach((b) => (b.onclick = async () => { const n = await askNote("أرشفة الموهبة", "السبب", false); if (n === null) return; try { await rpc("qm_talent_archive", { p_id: b.dataset.ar, p_reason: n }); paint(); } catch (e) { toast(mapErr(e), true); } }));
+      } else {
+        const C = await types("qm_achievement_categories"), S = [];
+        tb.innerHTML = `<div class="card form"><label>عنوان الإنجاز</label><input id="at" maxlength="200"><div class="grid2"><div><label>التصنيف</label><select id="ac">${opt(C)}</select></div><div><label>المستوى</label><select id="al">${Object.entries(LV).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></div><div><label>التاريخ</label><input id="ad" type="date" max="${todayISO()}" value="${todayISO()}"></div><div><label>الجهة المنظمة (اختياري)</label><input id="ao" maxlength="150"></div></div>
+        <label>وصف الإنجاز</label><textarea id="ax" maxlength="1000"></textarea><label>المتعلمون المشاركون</label><div id="pk"></div><div id="sl"></div>
+        <label>الشواهد (صورة أو PDF، حتى 3)</label><input id="af" type="file" accept="image/*,application/pdf" multiple><p class="sub">يُسجَّل الإنجاز بحالة «بانتظار التحقق»، ولا يظهر في المعرض إلا بعد توثيقه.</p><p class="err" id="ae"></p><button class="btn" id="asv">إرسال للتحقق</button></div>`;
+        const drawS = () => { $("#sl").innerHTML = S.map((s, i) => `<div class="item"><div class="row2"><b>${esc(s.name)}</b><button class="btn sm sec" data-rm="${i}">إزالة</button></div><input data-c="${i}" maxlength="200" placeholder="دور المتعلم في الإنجاز (اختياري)" value="${esc(s.contribution || "")}"></div>`).join("");
+          $$("[data-rm]", tb).forEach((b) => (b.onclick = () => { S.splice(+b.dataset.rm, 1); drawS(); })); $$("[data-c]", tb).forEach((i) => (i.oninput = () => (S[+i.dataset.c].contribution = i.value))); };
+        studentPicker($("#pk"), (s) => { if (!S.some((x) => x.id === s.id)) S.push({ ...s, contribution: "" }); drawS(); });
+        $("#asv").onclick = async () => { const b = $("#asv"); b.disabled = true; try {
+          const files = [...$("#af").files].slice(0, 3), paths = []; for (const f of files) paths.push(await uploadFile(f, ctx.uid));
+          await rpc("qm_achievement_create", { p_title: $("#at").value, p_category: $("#ac").value, p_date: $("#ad").value, p_level: $("#al").value, p_organizer: $("#ao").value, p_desc: $("#ax").value, p_students: S.map((s) => ({ student_id: s.id, contribution: s.contribution })), p_attachments: paths });
+          toast("أُرسل للتحقق"); cur = "mine"; paint(); } catch (e) { $("#ae").textContent = mapErr(e); b.disabled = false; } };
+      }
+    }; await paint();
+    const i = new URLSearchParams(location.search).get("i"); if (i) openAchievement(i, paint);
+  }),
+
+  support: () => boot("support.html", async (m, ctx) => {
+    let scope = "active"; const T = await types("qm_support_types");
+    const ST = { new: ["جديدة", "warn"], active: ["قيد المتابعة", ""], closed: ["مغلقة", "ok"] };
+    const EVN = { opened: "فتح الحالة", plan: "خطة دعم", action: "إجراء", follow_up: "متابعة دورية", note: "ملاحظة", closed: "إغلاق الحالة", reopened: "إعادة فتح", assigned: "استلام الحالة" };
+    const paint = async () => {
+      const L = await rpc("qm_support_list", { p_scope: scope });
+      m.innerHTML = `<div class="row2"><div class="tabs">${[["active", "النشطة"], ["new", "الجديدة"], ["closed", "المغلقة"], ["all", "الكل"]].map(([k, n]) => `<button type="button" class="${k === scope ? "on" : ""}" data-s="${k}">${n}</button>`).join("")}</div><button class="btn" id="nw">${ico("plus")}فتح حالة دعم</button></div>
+      <p class="sub">تُفتح الحالة عند وجود حاجة فعلية فقط، ولا تُنشأ ملفات اجتماعية أو نفسية دائمة. تُحفظ الحالات المغلقة وفق مدة الاحتفاظ المحددة في الإعدادات.</p>
+      ${L.length ? L.map((c) => `<div class="item" data-c="${c.id}" tabindex="0" role="button"><div class="row2"><div><b>حالة ${c.no} · ${esc(c.student)}</b> ${tbadge(ST[c.status][0], ST[c.status][1])}${c.overdue ? ' <span class="badge bad">متابعة متأخرة</span>' : ""}<br><small>${esc(c.grade || "")}${c.section ? " · " + esc(c.section) : ""} · ${esc(c.type)}${c.owner ? " · المسؤول: " + esc(c.owner) : ""}</small></div><small>${c.next_follow_up ? "المتابعة: " + esc(fmtShort(c.next_follow_up)) : ""}</small></div></div>`).join("") : empty("help", "لا حالات في هذا العرض")}`;
+      $$("[data-s]", m).forEach((b) => (b.onclick = () => { scope = b.dataset.s; paint(); }));
+      $$("[data-c]", m).forEach((el) => (el.onclick = () => openCase(el.dataset.c)));
+      $("#nw").onclick = () => newCase();
+    };
+    function newCase(pre) {
+      const st = { s: pre || null }, md = modal(`<h3>فتح حالة دعم</h3><label>المتعلم</label><div id="pk"></div><label>نوع الدعم</label><select id="ty">${opt(T)}</select><label>وصف الحاجة</label><textarea id="nd" maxlength="1000"></textarea><label>الهدف المرجو (اختياري)</label><input id="ng" maxlength="300"><p class="err" id="ne"></p><div class="acts mt"><button class="btn" id="ok">فتح الحالة</button><button class="btn sec" id="no">رجوع</button></div>`);
+      pickerField($("#pk", md.el), st, "s"); $("#no", md.el).onclick = md.close;
+      $("#ok", md.el).onclick = async () => { try { if (!st.s) throw new Error("اختر المتعلم."); await rpc("qm_support_open", { p_student: st.s.id, p_type: $("#ty", md.el).value, p_need: $("#nd", md.el).value, p_goal: $("#ng", md.el).value }); md.close(); toast("فُتحت الحالة"); paint(); } catch (e) { $("#ne", md.el).textContent = mapErr(e); } };
+    }
+    async function openCase(id) {
+      const md = modal('<p class="sub">جارٍ التحميل…</p>', true);
+      const load = async () => { try {
+        const c = await rpc("qm_support_get", { p_id: id }), mg = c.can.manage && c.status !== "closed";
+        md.el.innerHTML = `<div class="row2"><div><h3 style="margin:0">حالة ${c.no} · ${esc(c.student)}</h3><p class="sub">${esc(c.grade || "")}${c.section ? " · " + esc(c.section) : ""} · ${esc(c.type)} · منذ ${esc(fmtDay(c.started_on))}</p></div><button class="btn sm sec" data-x>إغلاق</button></div>
+        ${tbadge(ST[c.status][0], ST[c.status][1])}${c.owner ? ` <small>المسؤول: ${esc(c.owner)}</small>` : ""}${c.next_follow_up ? ` <small>المتابعة القادمة: ${esc(fmtDay(c.next_follow_up))}</small>` : ""}
+        <h4 class="sec">الحاجة</h4><p>${esc(c.need)}</p>${c.goal ? `<p class="sub">الهدف: ${esc(c.goal)}</p>` : ""}
+        ${c.plans.length ? `<h4 class="sec">خطط الدعم</h4>${c.plans.map((p) => `<div class="item"><b>${esc(p.title)}</b>${p.review_on ? ` <small>مراجعة: ${esc(fmtShort(p.review_on))}</small>` : ""}${p.strategies ? `<p class="sub">${esc(p.strategies)}</p>` : ""}</div>`).join("")}` : ""}
+        <h4 class="sec">سجل المتابعة</h4>${c.events.map((e) => `<div class="item"><div class="row2"><b>${esc(EVN[e.kind] || e.kind)}</b><small>${esc(fmtT(e.created_at))} · ${esc(e.by)}</small></div>${e.note ? `<p class="sub">${esc(e.note)}</p>` : ""}${e.improvement ? `<small>مستوى التحسن: ${e.improvement} من 5</small>` : ""}</div>`).join("")}
+        ${c.status === "closed" ? `<p class="sub">النتيجة: ${esc(c.result || "")}${c.final_improvement ? ` · التحسن النهائي ${c.final_improvement} من 5` : ""} · يُحتفظ بها حتى ${esc(fmtDay(c.retention_until))}</p>` : ""}
+        <div class="acts mt" id="ac"></div>`;
+        $("[data-x]", md.el).onclick = () => { md.close(); paint(); };
+        const ac = $("#ac", md.el), act = (n, cls, fn) => { const b = document.createElement("button"); b.className = "btn sm " + cls; b.textContent = n; b.onclick = fn; ac.appendChild(b); };
+        const post = async (kind, title, label, req, imp) => { const f = await askCase(title, label, req, imp); if (!f) return; try { await rpc("qm_support_act", { p_id: id, p_kind: kind, p_note: f.note, p_improvement: f.imp, p_next: f.next }); load(); } catch (e) { toast(mapErr(e), true); } };
+        if (mg) { act("إضافة خطة دعم", "", async () => { const f = await askPlan(); if (!f) return; try { await rpc("qm_support_add_plan", { p_case: id, p_title: f.t, p_strategies: f.s, p_review_on: f.r }); load(); } catch (e) { toast(mapErr(e), true); } });
+          act("توثيق إجراء", "sec", () => post("action", "توثيق إجراء", "الإجراء المنفذ", true)); act("متابعة دورية", "sec", () => post("follow_up", "متابعة دورية", "ملخص المتابعة", true, true));
+          act("ملاحظة", "sec", () => post("note", "ملاحظة", "الملاحظة", true)); act("استلام الحالة", "sec", () => post("take", "استلام الحالة", "ملاحظة (اختياري)", false));
+          act("إغلاق الحالة", "sec", () => post("close", "إغلاق الحالة", "نتيجة الدعم", true, true)); }
+        if (c.can.manage && c.status === "closed") act("إعادة فتح", "sec", () => post("reopen", "إعادة فتح الحالة", "سبب إعادة الفتح", true));
+      } catch (e) { md.el.innerHTML = `<p class="err">${esc(mapErr(e))}</p><button class="btn sec" data-x>إغلاق</button>`; $("[data-x]", md.el).onclick = md.close; } };
+      await load();
+    }
+    function askCase(title, label, req, imp) { return new Promise((res) => {
+      const md = modal(`<h3>${esc(title)}</h3><label>${esc(label)}</label><textarea id="nt" maxlength="1000"></textarea>${imp ? `<label>مستوى التحسن (1 إلى 5، اختياري)</label><select id="im"><option value="">—</option>${[1, 2, 3, 4, 5].map((n) => `<option>${n}</option>`).join("")}</select>` : ""}<label>موعد المتابعة القادمة (اختياري)</label><input id="nx" type="date"><p class="err" id="ne"></p><div class="acts mt"><button class="btn" id="ok">حفظ</button><button class="btn sec" id="no">رجوع</button></div>`);
+      $("#no", md.el).onclick = () => { md.close(); res(null); };
+      $("#ok", md.el).onclick = () => { const note = $("#nt", md.el).value.trim(); if (req && !note) { $("#ne", md.el).textContent = "هذا الحقل مطلوب."; return; } md.close(); res({ note, imp: imp && $("#im", md.el).value ? +$("#im", md.el).value : null, next: $("#nx", md.el).value || null }); }; }); }
+    function askPlan() { return new Promise((res) => {
+      const md = modal(`<h3>خطة دعم</h3><label>عنوان الخطة</label><input id="pt" maxlength="200"><label>الاستراتيجيات والإجراءات</label><textarea id="ps" maxlength="1500"></textarea><label>موعد المراجعة (اختياري)</label><input id="pr" type="date"><p class="err" id="ne"></p><div class="acts mt"><button class="btn" id="ok">حفظ الخطة</button><button class="btn sec" id="no">رجوع</button></div>`);
+      $("#no", md.el).onclick = () => { md.close(); res(null); };
+      $("#ok", md.el).onclick = () => { const t = $("#pt", md.el).value.trim(); if (!t) { $("#ne", md.el).textContent = "عنوان الخطة مطلوب."; return; } md.close(); res({ t, s: $("#ps", md.el).value, r: $("#pr", md.el).value || null }); }; }); }
+    await paint();
+    const i = new URLSearchParams(location.search).get("i"); if (i) openCase(i);
+  }, { role: "support" }),
+});

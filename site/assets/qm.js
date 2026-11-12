@@ -28,6 +28,7 @@ const ERR = {
   points_invalid: "عدد النقاط غير صحيح أو يتجاوز الحد الأقصى المسموح.",
   student_not_enrolled: "هذا المتعلم غير مقيّد في العام الدراسي الحالي.",
   duplicate: "سُجّلت عملية مطابقة قبل قليل. إن كانت مقصودة فانتظر قليلاً.",
+  student_required: "أضف متعلماً واحداً على الأقل.",
   date_future: "لا يمكن تسجيل واقعة بتاريخ مستقبلي.",
   already_void: "سبق إلغاء هذا التعزيز.",
 };
@@ -182,6 +183,8 @@ const NAV = [
   ["reinforcements.html", "سجل التعزيز", "calendar", "سجل التعزيزات ودفتر النقاط", "all"],
   ["balances.html", "الأرصدة والتميز", "trophy", "أرصدة المتعلمين ولوحة التميز", "all"],
   ["students.html", "دليل المتعلمين", "users", "بحث سريع وبطاقة المتعلم", "all"],
+  ["achievements.html", "الإنجاز والمواهب", "trophy", "إنجازات المتعلمين ومواهبهم ومعرض التميز", "all"],
+  ["support.html", "المتابعة والدعم", "help", "حالات الدعم التربوي وخطط المتابعة", "support"],
   ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
   ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
   ["admin.html", "الإدارة", "gear", "الأدوار والإعدادات وسجل العمليات", "admin"],
@@ -200,7 +203,7 @@ async function boot(page, render, o = {}) {
   const ctx = { who, uid: session.user.id, isAdmin: who.is_admin, isAgent: who.is_agent, isCounselor: who.is_counselor,
     role: who.is_agent ? "وكيل شؤون الطلاب" : who.is_counselor ? "الموجه الطلابي" : who.is_admin ? "مدير النواة الرقمية" : "المعلم" };
   window.__qm = ctx;
-  const ok = (r) => r === "all" || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
+  const ok = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
   const items = NAV.filter((n) => ok(n[4]));
   const cur = NAV.find((n) => n[0] === page) || [page, "لوحة التحكم", "grid", ""];
@@ -230,7 +233,7 @@ async function boot(page, render, o = {}) {
   const main = $("#main");
   try { await render(main, ctx); } catch (e) { console.error(e); main.innerHTML = `<p class="err">تعذر تحميل الصفحة: ${esc(mapErr(e))}</p>`; }
   // فتح واقعة مباشرة من رابط إشعار (?i=)
-  const q = new URLSearchParams(location.search).get("i"); if (q) openIncident(q);
+  const q = new URLSearchParams(location.search).get("i"); if (q && !/^(achievements|support)\.html$/.test(page)) openIncident(q);
 }
 
 async function awardBadge(studentId, done) {
