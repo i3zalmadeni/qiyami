@@ -188,6 +188,7 @@ const NAV = [
   ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
   ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
   ["reports.html", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "report"],
+  ["points.html", "إدارة النقاط", "star", "إضافة النقاط وتعديلها وحذفها", "admin"],
   ["admin.html", "الإدارة", "gear", "الأدوار والإعدادات وسجل العمليات", "admin"],
 ];
 async function boot(page, render, o = {}) {

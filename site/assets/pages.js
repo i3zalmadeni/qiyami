@@ -360,3 +360,35 @@ Object.assign(PAGES, {
     const c = $("#card"); if (c) c.onclick = () => openStudentCard(id);
   }, { title: "ملف المتعلم", desc: "الجانب الإيجابي: النقاط ومن منحها والأوسمة والإنجازات" }),
 });
+
+Object.assign(PAGES, {
+  points: () => boot("points.html", async (m) => {
+    const T = await types("qm_reinforcement_types"), st = { s: null };
+    m.innerHTML = `<div class="card form"><label>المتعلم</label><div id="pk"></div></div><div id="pb" style="margin-top:16px"></div>
+      <div class="card mt"><h4 style="margin-top:0">نقاط أنواع التعزيز الافتراضية</h4><p class="sub">تظهر هذه القيم في «كيف تكسب النقاط؟» بالصفحة الرئيسية مرتبة من الأعلى. عدّل أو أضف أو احذف الأنواع من <a href="admin.html">الإدارة ← أنواع التعزيز</a>.</p>
+      <table class="tbl"><thead><tr><th>النوع</th><th>النقاط الافتراضية</th></tr></thead><tbody>${[...T].sort((a, b) => b.default_points - a.default_points).map((t) => `<tr><td><b>${esc(t.name_ar)}</b></td><td>${pts(t.default_points)}</td></tr>`).join("")}</tbody></table></div>`;
+    const paint = async () => {
+      const box = $("#pb");
+      if (!st.s) { box.innerHTML = empty("star", "اختر متعلماً", "ابحث باسمه لإضافة نقاط أو تعديلها أو حذفها."); return; }
+      let D; try { D = await rpc("qm_student_reinforcements_admin", { p_student: st.s.id }); } catch (e) { box.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; return; }
+      box.innerHTML = `<div class="card"><div class="row2"><div><h4 style="margin:0">${esc(st.s.name)}</h4><small>${esc(st.s.grade || "")}${st.s.section ? " · " + esc(st.s.section) : ""}</small></div><div>الرصيد الحالي: ${pts(D.balance)}</div></div>
+        <div class="two mt"><div><label>إضافة نقاط (نوع التعزيز)</label><select id="ty">${T.map((t) => `<option value="${t.id}" data-p="${t.default_points}">${esc(t.name_ar)}</option>`).join("")}</select></div><div><label>عدد النقاط</label><input id="pt" type="number" min="1" max="1000" value="${T[0]?.default_points || 1}"></div></div>
+        <label>ملاحظة (اختياري)</label><input id="ds" maxlength="300"><p class="err" id="pe"></p>
+        <div class="acts mt"><button class="btn" id="ad">${ico("plus")}إضافة النقاط</button><button class="btn sec" id="adj">خصم / تصحيح الرصيد</button><button class="btn sec" id="bg">منح وسام</button><a class="btn sec" href="student.html?id=${st.s.id}">فتح الملف</a></div></div>
+        <div class="card mt"><h4 style="margin-top:0">التعزيزات المسجّلة</h4>${D.rows.length ? `<table class="tbl"><thead><tr><th>النوع</th><th>النقاط</th><th>منحها</th><th>التاريخ</th><th></th></tr></thead><tbody>${D.rows.map((r) => `<tr><td><b>${esc(r.type)}</b>${r.description ? `<br><small>${esc(r.description)}</small>` : ""}</td><td>${pts(r.points)}</td><td>${esc(r.by)}</td><td>${esc(fmtShort(r.created_at))}</td><td><button class="btn sm sec" data-e="${r.id}" data-p="${r.points}">تعديل</button> <button class="btn sm sec" data-d="${r.id}">حذف</button></td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا تعزيزات.</p>'}</div>`;
+      $("#ty").onchange = (e) => ($("#pt").value = e.target.selectedOptions[0].dataset.p || 1);
+      $("#ad").onclick = async () => { try { await rpc("qm_admin_add_points", { p_student: st.s.id, p_type: $("#ty").value, p_points: +$("#pt").value, p_description: $("#ds").value }); toast("أُضيفت النقاط"); paint(); } catch (e) { $("#pe").textContent = mapErr(e); } };
+      $("#adj").onclick = () => adjustPoints(st.s.id, paint);
+      $("#bg").onclick = () => awardBadge(st.s.id, paint);
+      $$("[data-e]", box).forEach((b) => (b.onclick = async () => {
+        const md = modal(`<h3>تعديل نقاط التعزيز</h3><label>النقاط الجديدة</label><input id="np" type="number" min="0" max="1000" value="${b.dataset.p}"><label>سبب التعديل (مطلوب)</label><textarea id="nr"></textarea><p class="err" id="ne"></p><div class="acts mt"><button class="btn" id="ok">حفظ</button><button class="btn sec" id="no">رجوع</button></div>`);
+        $("#no", md.el).onclick = md.close;
+        $("#ok", md.el).onclick = async () => { try { await rpc("qm_edit_reinforcement_points", { p_id: b.dataset.e, p_points: +$("#np", md.el).value, p_reason: $("#nr", md.el).value }); md.close(); toast("عُدّلت النقاط"); paint(); } catch (e) { $("#ne", md.el).textContent = mapErr(e); } };
+      }));
+      $$("[data-d]", box).forEach((b) => (b.onclick = async () => { const n = await askNote("حذف التعزيز", "سبب الحذف (مطلوب). تُعكس نقاطه ويبقى أثره في سجل العمليات.", true); if (!n) return; try { await rpc("qm_void_reinforcement", { p_id: b.dataset.d, p_reason: n }); toast("حُذف التعزيز وعُكست نقاطه"); paint(); } catch (e) { toast(mapErr(e), true); } }));
+    };
+    const pk = $("#pk");
+    const drawPk = () => { if (st.s) { pk.classList.remove("pick"); pk.innerHTML = chosenHTML(st.s); $("[data-clear]", pk).onclick = () => { st.s = null; drawPk(); paint(); }; } else studentPicker(pk, (s) => { st.s = s; drawPk(); paint(); }); };
+    drawPk(); paint();
+  }, { title: "إدارة النقاط", desc: "إضافة النقاط وتعديلها وحذفها" }),
+});
