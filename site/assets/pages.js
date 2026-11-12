@@ -110,17 +110,17 @@ const PAGES = {
     const ex = await rpc("qm_excellence", { p_limit: 10 });
     m.innerHTML = `<div class="grid"><div class="card"><h4 style="margin-top:0">لوحة التميز</h4>${ex.length ? ex.map((r, i) => `<div class="rank"><span class="n ${i === 0 ? "g" : ""}">${i + 1}</span><b><a href="#" data-c="${r.id}">${esc(r.name)}</a></b><span class="v">${r.balance}</span><span class="track"><i style="width:${Math.round((r.balance / ex[0].balance) * 100)}%"></i></span></div>`).join("") : '<p class="sub">لا أرصدة بعد.</p>'}<p class="sub">للتكريم والتحفيز، وليست ترتيباً رسمياً.</p></div>
     <div class="card" style="grid-column:span 2"><h4 style="margin-top:0">أرصدة المتعلمين</h4><input id="q" type="search" placeholder="ابحث باسم المتعلم أو رقمه" aria-label="بحث"><div id="li" style="margin-top:10px"></div></div></div>`;
-    $$("[data-c]", m).forEach((a) => (a.onclick = (e) => { e.preventDefault(); openStudentCard(a.dataset.c); }));
+    $$("[data-c]", m).forEach((a) => (a.onclick = (e) => { e.preventDefault(); location.href = "student.html?id=" + a.dataset.c; }));
     let t = 0; const draw = async () => { const r = await rpc("qm_balances", { p_q: $("#q").value, p_limit: 60 });
       $("#li").innerHTML = r.length ? `<table class="tbl"><thead><tr><th>المتعلم</th><th>الصف</th><th>التعزيزات</th><th>الرصيد</th></tr></thead><tbody>${r.map((x) => `<tr data-c="${x.id}" style="cursor:pointer"><td>${esc(x.name)}</td><td>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</td><td>${x.awards}</td><td>${pts(x.balance)}</td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا نتائج.</p>';
-      $$("tr[data-c]", $("#li")).forEach((tr) => (tr.onclick = () => openStudentCard(tr.dataset.c))); };
+      $$("tr[data-c]", $("#li")).forEach((tr) => (tr.onclick = () => (location.href = "student.html?id=" + tr.dataset.c))); };
     $("#q").oninput = () => { clearTimeout(t); t = setTimeout(draw, 250); }; await draw();
   }),
 
   students: () => boot("students.html", async (m) => {
     const st = { s: null };
     m.innerHTML = `<div class="card form"><label>ابحث عن متعلم</label><div id="pk"></div><p class="sub">البيانات مرجعها النواة الرقمية، ولا تُنسخ داخل النظام. تعرض البطاقة ما تسمح به صلاحيتك.</p></div>`;
-    studentPicker($("#pk"), (s) => openStudentCard(s.id), { placeholder: "اكتب حرفين على الأقل من الاسم أو الرقم" });
+    studentPicker($("#pk"), (s) => (location.href = "student.html?id=" + s.id), { placeholder: "اكتب حرفين على الأقل من الاسم أو الرقم" });
   }),
 
   agent: () => boot("agent.html", async (m) => {
@@ -334,4 +334,28 @@ Object.assign(PAGES, {
     };
     await run();
   }, { role: "report" }),
+});
+
+Object.assign(PAGES, {
+  student: () => boot("student.html", async (m, ctx) => {
+    const id = new URLSearchParams(location.search).get("id");
+    if (!id) { m.innerHTML = empty("users", "لم يُحدَّد متعلم", "افتح الملف من لوحة التميز أو من دليل المتعلمين."); return; }
+    const s = await rpc("qm_student_profile", { p_student: id });
+    const ini = (s.name || "").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join(" ");
+    document.title = s.name + " – قيمي";
+    m.innerHTML = `<section class="sp-hero"><div class="sp-av" aria-hidden="true">${esc(ini)}</div><div class="sp-id"><small>الملف الشخصي للمتعلم</small><h2>${esc(s.name)}</h2><p>${esc(s.grade || "")}${s.section ? " · " + esc(s.section) : ""}${s.no ? " · رقم " + esc(s.no) : ""}</p>
+        <div class="sp-chips">${s.badges.slice(0, 4).map((b) => `<span class="bdg-i">${ico(b.icon in ICONS ? b.icon : "trophy")}${esc(b.name)}</span>`).join("")}</div></div>
+      <div class="sp-pts"><b>${s.balance}</b><span>نقطة</span>${s.balance > 0 ? `<small>الترتيب ${s.rank} في المدرسة</small>` : ""}</div></section>
+      <div class="grid mt">${kpi("check", s.reinforcements, "تعزيزاً", 1)}${kpi("trophy", s.badges.length, "وساماً", 3)}${kpi("star", s.achievements.length, "إنجازاً موثقاً", 4)}${kpi("bulb", s.talents.length, "موهبة", 0)}</div>
+      <div class="grid mt">
+        <div class="card"><h4 style="margin-top:0">من منح النقاط</h4>${s.givers.length ? rankRows(s.givers.map((g) => ({ name: g.name + " (" + g.n + " تعزيز)", points: g.points })), "name", "points") : '<p class="sub">لا نقاط ممنوحة بعد.</p>'}</div>
+        <div class="card"><h4 style="margin-top:0">الأوسمة</h4>${s.badges.length ? s.badges.map((b) => `<div class="item"><div class="row2"><b>${ico(b.icon in ICONS ? b.icon : "trophy")} ${esc(b.name)}</b><small>${esc(fmtShort(b.at))}</small></div><small>منحه: ${esc(b.by)}</small></div>`).join("") : '<p class="sub">لا أوسمة بعد.</p>'}</div>
+        <div class="card"><h4 style="margin-top:0">المواهب والقدرات</h4>${s.talents.length ? s.talents.map((t) => `<div class="item"><b>${esc(t.name)}</b> <small>${esc(t.field)}</small>${t.description ? `<p class="sub">${esc(t.description)}</p>` : ""}</div>`).join("") : '<p class="sub">لا مواهب مرصودة.</p>'}</div></div>
+      <h3 class="sec">الإنجازات</h3>${s.achievements.length ? s.achievements.map((a) => `<div class="item"><div class="row2"><b>${esc(a.title)}</b><small>${esc(fmtDay(a.achieved_on))}</small></div><small>${esc(a.category)} · ${esc(LV[a.level])}</small></div>`).join("") : '<p class="sub">لا إنجازات موثقة بعد.</p>'}
+      <h3 class="sec">سجل التعزيز</h3>${s.reinforcement_list.length ? s.reinforcement_list.map((r) => `<div class="item"><div class="row2"><div><b>${esc(r.type)}</b><br><small>منحه: ${esc(r.by)} · ${esc(fmtT(r.created_at))}</small></div>${r.points ? pts(r.points) : ""}</div>${r.description ? `<p class="sub">${esc(r.description)}</p>` : ""}</div>`).join("") : empty("check", "لا تعزيزات بعد")}
+      ${s.positive.length ? `<h3 class="sec">مواقف إيجابية</h3>${s.positive.map((p) => `<div class="item"><div class="row2"><b>${esc(p.category)}</b><small>${esc(fmtShort(p.created_at))}</small></div><p class="sub">${esc(p.description)}</p><small>سجّلها: ${esc(p.by)}</small></div>`).join("")}` : ""}
+      <p class="sub">ملف تعريفي يعرض الجانب الإيجابي فقط، ولا يتضمن بيانات تواصل أو سلوكية.</p>
+      <div class="acts mt"><a class="btn sec" href="balances.html">${ico("arrow")}العودة إلى لوحة التميز</a>${ctx.isAdmin || ctx.isAgent || ctx.isCounselor ? `<button class="btn sec" id="card">البطاقة الكاملة</button>` : ""}</div>`;
+    const c = $("#card"); if (c) c.onclick = () => openStudentCard(id);
+  }, { title: "ملف المتعلم", desc: "الجانب الإيجابي: النقاط ومن منحها والأوسمة والإنجازات" }),
 });

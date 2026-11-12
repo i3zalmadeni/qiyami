@@ -101,7 +101,7 @@ async function openStudentCard(id) {
     ${c.positive.length ? `<h4 class="sec">مواقف إيجابية</h4>${c.positive.map((p) => `<div class="item"><b>${esc(p.category)}</b> <small>${esc(fmtShort(p.created_at))}</small><p class="sub">${esc(p.description)}</p></div>`).join("")}` : ""}
     <h4 class="sec">حركة النقاط</h4>${L.rows.length ? `<table class="tbl"><tbody>${L.rows.map((r) => `<tr><td>${pts(r.points)}</td><td>${esc(r.reason || "")}${r.kind === "reversal" ? " (إلغاء)" : r.kind === "correction" ? " (تصحيح)" : ""}</td><td><small>${esc(r.by)} · ${esc(fmtShort(r.created_at))}</small></td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا حركات.</p>'}
     ${c.sensitive ? `<h4 class="sec">الوقائع السلوكية</h4>${c.incidents.length ? c.incidents.map((i) => `<div class="item"><b>واقعة ${i.no}</b> · ${esc(i.category)} ${tbadge(i.status_name, i.tone)} <small>${esc(fmtDay(i.occurred_on))}</small></div>`).join("") : '<p class="sub">لا وقائع.</p>'}` : ""}
-    ${(window.__qm?.isAdmin || window.__qm?.isAgent || window.__qm?.isCounselor) ? `<div class="acts mt"><button class="btn sm" data-badge>${ico("trophy")}منح وسام</button>${window.__qm.isAdmin ? `<button class="btn sm sec" data-adj>تصحيح الرصيد</button>` : ""}</div>` : ""}
+    ${(window.__qm?.isAdmin || window.__qm?.isAgent || window.__qm?.isCounselor) ? `<div class="acts mt"><a class="btn sm sec" href="student.html?id=${id}">${ico("user")}الملف الشخصي</a><button class="btn sm" data-badge>${ico("trophy")}منح وسام</button>${window.__qm.isAdmin ? `<button class="btn sm sec" data-adj>تصحيح الرصيد</button>` : ""}</div>` : ""}
     <p class="sub">بطاقة داخلية لمنسوبي المدرسة المخولين، وليست ملفاً إدارياً شاملاً.</p>`;
     $("[data-x]", md.el).onclick = md.close;
     const bb = $("[data-badge]", md.el); if (bb) bb.onclick = () => awardBadge(id, () => { md.close(); openStudentCard(id); });
@@ -207,7 +207,7 @@ async function boot(page, render, o = {}) {
   const ok = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "report" && (ctx.isAdmin || ctx.isAgent || ctx.isCounselor)) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
   const items = NAV.filter((n) => ok(n[4]));
-  const cur = NAV.find((n) => n[0] === page) || [page, "لوحة التحكم", "grid", ""];
+  const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
