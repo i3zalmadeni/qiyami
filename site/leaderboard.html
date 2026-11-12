@@ -1,7 +1,7 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>لوحة الصدارة – قيمي</title><meta name="description" content="أعلى المتعلمين نقاطاً في المدرسة والصف والفصل"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/qm.css"><link rel="stylesheet" href="assets/about.css"></head><body class="pubsite">
 <div id="hdr"></div>
-<section class="hero3 slim"><div class="h3g"><div class="h3t"><span class="h3pill"><span class="tg" data-ico="trophy"></span>لوحة الصدارة</span><h1><em>لوحة</em> الصدارة</h1><p class="h3p">المتعلمون الأعلى نقاطاً في المدرسة أو الصف أو الفصل. للتكريم والتحفيز، وليست ترتيباً رسمياً.</p></div></div></section>
+<section class="hero3 slim"><div class="h3g"><div class="h3t"><span class="h3pill"><span class="tg" data-ico="trophy"></span>لوحة الصدارة · أفضل الطلاب</span><h1><em>نجوم</em> التميز</h1><p class="h3p">نحتفي بنجوم التميز: أفضل المتعلمين نقاطاً على مستوى المدرسة أو الصف أو الفصل، تكريماً لجدّهم واجتهادهم.</p></div></div></section>
 <section class="sct"><div class="wrap" id="lb"><p class="sub">جارٍ التحميل…</p></div></section><div id="ftr"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="assets/config.js"></script><script src="assets/chrome.js"></script><script src="assets/qm.js"></script><script src="assets/about-icons.js"></script>
@@ -13,7 +13,9 @@ pubInit("leaderboard.html");
   if (!session) { root.innerHTML = `<div class="card empty"><div class="big">${ico("lock")}</div><b>لوحة الصدارة لمنسوبي المدرسة</b><p class="sub">سجّل الدخول بحساب النواة لعرض الأسماء، حمايةً لخصوصية المتعلمين.</p><a class="btn" href="login.html?next=leaderboard.html">تسجيل الدخول</a></div>`; return; }
   let F; try { F = await rpc("qm_leaderboard_filters"); } catch (e) { root.innerHTML = `<p class="err">${esc(mapErr(e))}</p><a class="btn" href="login.html?next=leaderboard.html">تسجيل الدخول</a>`; return; }
   const st = { scope: "school", grade: F.grades[0]?.code || "", section: "", limit: 20 };
-  const medal = (r) => (r === 1 ? "g" : r === 2 ? "s" : r === 3 ? "b" : "");
+  const ini = (n) => (n || "").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join(" ");
+  const scopeName = () => (st.scope === "school" ? "المدرسة" : st.scope === "grade" ? "الصف" : "الفصل");
+  const tag = (r) => (r === 1 ? "نجم " + scopeName() : r === 2 ? "المركز الثاني" : "المركز الثالث");
   const draw = async () => {
     const secs = F.sections.filter((s) => s.grade === st.grade);
     if (st.scope === "section" && !secs.some((s) => s.id === st.section)) st.section = secs[0]?.id || "";
@@ -31,10 +33,11 @@ pubInit("leaderboard.html");
     try {
       const L = await rpc("qm_leaderboard", { p_scope: st.scope, p_grade: st.scope === "school" ? null : st.grade, p_section: st.scope === "section" ? st.section : null, p_limit: st.limit });
       if (!L.length) { out.innerHTML = empty("trophy", "لا نقاط بعد في هذا النطاق"); return; }
-      const top = L.filter((x) => x.rank <= 3);
-      out.innerHTML = `<div class="lb-pod">${top.map((x) => `<a class="lb-p ${medal(x.rank)}" href="student.html?id=${x.id}"><span class="lb-n">${x.rank}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</small><span class="lb-v">${x.balance}<i>نقطة</i></span></a>`).join("")}</div>
-        <div class="card"><table class="tbl"><thead><tr><th>الترتيب</th><th>المتعلم</th><th>الصف</th><th>النقاط</th></tr></thead><tbody>${L.map((x) => `<tr data-c="${x.id}" style="cursor:pointer"><td><span class="rk ${medal(x.rank)}">${x.rank}</span></td><td><b>${esc(x.name)}</b></td><td>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</td><td>${pts(x.balance)}</td></tr>`).join("")}</tbody></table></div>
-        <p class="sub">يعرض المتعلمين ذوي الرصيد الموجب فقط. عند تساوي النقاط يتشاركون المرتبة نفسها.</p>`;
+      let top = L.filter((x) => x.rank <= 3);
+      if (top.length === 3 && top.every((x, k) => x.rank === k + 1)) top = [top[1], top[0], top[2]];
+      out.innerHTML = `<div class="lb-pod">${top.map((x) => `<a class="lb-card" data-m="${x.rank}" href="student.html?id=${x.id}"><span class="lb-tag">${esc(tag(x.rank))}</span><span class="lb-av" aria-hidden="true">${esc(ini(x.name))}<span class="lb-medal">${x.rank}</span></span><b class="nm">${esc(x.name)}</b><small>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</small><span class="lb-v">${x.balance}<i>نقطة</i></span></a>`).join("")}</div>
+        <div class="card"><h4 style="margin-top:0">أبطال التميز</h4><table class="tbl"><thead><tr><th>الترتيب</th><th>المتعلم</th><th>الصف</th><th>النقاط</th></tr></thead><tbody>${L.map((x) => `<tr data-c="${x.id}" style="cursor:pointer"><td><span class="rk" data-m="${x.rank <= 3 ? x.rank : ""}">${x.rank}</span></td><td><b>${esc(x.name)}</b></td><td>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</td><td>${pts(x.balance)}</td></tr>`).join("")}</tbody></table></div>
+        <p class="sub">نفخر بكل متعلم يجتهد ويتميز. يعرض المتعلمين ذوي الرصيد الموجب فقط، وعند تساوي النقاط يتشاركون المرتبة نفسها.</p>`;
       out.querySelectorAll("tr[data-c]").forEach((tr) => (tr.onclick = () => (location.href = "student.html?id=" + tr.dataset.c)));
     } catch (e) { out.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; }
   };
