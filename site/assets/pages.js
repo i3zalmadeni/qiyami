@@ -13,7 +13,7 @@ const rankRows = (rows, key, val) => { const mx = Math.max(1, ...rows.map((r) =>
 
 const PAGES = {
   dashboard: () => boot("dashboard.html", async (m, c) => {
-    const [d, mine] = await Promise.all([rpc("qm_dashboard", { p_days: 14 }), rpc("qm_incidents_list", { p_scope: "mine", p_limit: 5 })]);
+    const [d, mine, x] = await Promise.all([rpc("qm_dashboard", { p_days: 14 }), rpc("qm_incidents_list", { p_scope: "mine", p_limit: 5 }), rpc("qm_dashboard_ext").catch(() => ({}))]);
     const sens = d.incidents_new !== null && d.incidents_new !== undefined;
     const kp = [kpi("users", d.students, "متعلماً مرتبطاً بالنواة", 0), kpi("check", d.reinforcements, "عملية تعزيز", 1), kpi("star", d.points, "نقطة ممنوحة (الرصيد الصافي)", 3), kpi("trophy", d.badges, "وسام ممنوح", 4)];
     const mk = [kpi("plus", d.my_reinforcements, "تعزيزاً سجّلتُه", 1), kpi("inbox", d.my_incidents, "واقعة رفعتُها", 0), kpi("help", d.my_needs_action, "تنتظر استكمالك", 2)];
@@ -23,13 +23,14 @@ const PAGES = {
     <h3 class="sec">مهامي</h3><div class="grid">${mk.join("")}</div>
     ${sens ? `<h3 class="sec">الوقائع السلوكية</h3><div class="grid">${wk.join("")}</div>` : ""}
     <h3 class="sec">المدرسة</h3><div class="grid">${kp.join("")}</div>
+    <h3 class="sec">الإنجاز والدعم</h3><div class="grid">${[kpi("trophy", x.achievements, "إنجازاً موثقاً", 4), kpi("star", x.talents, "موهبة مرصودة", 3), ...(x.achievements_pending != null ? [kpi("clock", x.achievements_pending, "إنجازاً بانتظار التحقق", 2)] : []), ...(x.support_active != null ? [kpi("help", x.support_active, "حالة دعم نشطة", 0), kpi("hourglass", x.support_due, "متابعة متأخرة", 2)] : [])].join("")}</div>
     <div class="grid mt"><div class="card"><h4 style="margin-top:0">التعزيز اليومي (آخر 14 يوماً)</h4>${bars(d.series)}</div>
       <div class="card"><h4 style="margin-top:0">حسب نوع التعزيز</h4>${rankRows(d.by_type, "type", "n")}</div>
       <div class="card"><h4 style="margin-top:0">حسب الصف</h4>${rankRows(d.by_grade, "grade", "n")}</div></div>
     <h3 class="sec">أحدث العمليات</h3>${d.recent.length ? d.recent.map((r) => `<div class="item"><div class="row2"><div><b>${esc(r.student)}</b> · ${esc(r.type)}</div><span>${r.points ? pts(r.points) : ""} <small>${esc(ago(r.created_at))}</small></span></div></div>`).join("") : empty("check", "لا تعزيزات بعد", "ابدأ بتسجيل أول تعزيز.")}
     <h3 class="sec">آخر وقائعي</h3><div id="mi">${mine.length ? mine.map(incidentCard).join("") : '<p class="sub">لم ترفع وقائع.</p>'}</div>
     <div class="acts mt"><a class="btn" href="reinforce.html">${ico("plus")}تسجيل تعزيز</a><a class="btn sec" href="behavior.html">تسجيل سلوك</a></div>
-    <p class="sub">المؤشرات من قاعدة البيانات مباشرة، وتغطي ${esc(fmtShort(d.since))} إلى اليوم في المخططات. حالات الإنجاز والدعم التربوي تُضاف مع مراحلها.</p>`;
+    <p class="sub">المؤشرات من قاعدة البيانات مباشرة، وتغطي ${esc(fmtShort(d.since))} إلى اليوم في المخططات.</p>`;
     bindIncidents($("#mi"), () => location.reload());
   }),
 
