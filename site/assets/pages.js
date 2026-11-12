@@ -150,3 +150,46 @@ function bindVoid(root, reload, c) {
   $$("[data-void]", root).forEach((b) => (b.onclick = async () => { const n = await askNote("إلغاء التعزيز", "سبب الإلغاء (يُحفظ في السجل، ولا يُحذف التعزيز)", true); if (n === null) return;
     try { await rpc("qm_void_reinforcement", { p_id: b.dataset.void, p_reason: n }); toast("أُلغي التعزيز وعُكست نقاطه"); await reload(); } catch (e) { toast(mapErr(e), true); } }));
 }
+
+// جدول إعدادات عام: يعدّل الصفوف مباشرة (RLS يسمح لمدير النواة فقط، وكل تعديل يُسجَّل في سجل التدقيق بمشغّل قاعدة البيانات)
+async function crud(root, table, cols, add) {
+  const load = async () => { const { data, error } = await sb.from(table).select("*").order("sort_order"); if (error) throw new Error(mapErr(error)); return data; };
+  const cell = (c, r) => c.t === "bool" ? `<label class="tgl"><input type="checkbox" data-k="${c.k}" ${r[c.k] ? "checked" : ""} aria-label="${esc(c.l)}"><span></span></label>`
+    : c.t === "select" ? `<select data-k="${c.k}">${c.o.map(([v, l]) => `<option value="${v}" ${r[c.k] === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`
+    : c.ro ? `<small>${esc(r[c.k])}</small>` : `<input data-k="${c.k}" type="${c.t || "text"}" value="${esc(r[c.k] ?? "")}" ${c.t === "number" ? 'min="0"' : ""}>`;
+  const draw = async () => { const rows = await load();
+    root.innerHTML = `<div style="overflow:auto"><table class="tbl"><thead><tr>${cols.map((c) => `<th>${esc(c.l)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr data-id="${r.id}">${cols.map((c) => `<td>${cell(c, r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    <form class="card form mt" id="af"><h4 style="margin:0">إضافة</h4><div class="two">${add.map((c) => `<div><label>${esc(c.l)}</label>${c.t === "select" ? `<select name="${c.k}">${c.o.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("")}</select>` : `<input name="${c.k}" type="${c.t || "text"}" ${c.req ? "required" : ""}>`}</div>`).join("")}</div><p class="err" id="ae"></p><div class="acts"><button class="btn">إضافة</button></div></form>`;
+    $$("tr[data-id] [data-k]", root).forEach((el) => (el.onchange = async () => { const k = el.dataset.k, id = el.closest("tr").dataset.id; let v = el.type === "checkbox" ? el.checked : el.type === "number" ? +el.value : el.value;
+      const { error } = await sb.from(table).update({ [k]: v }).eq("id", id); if (error) { toast(mapErr(error), true); draw(); } else toast("تم الحفظ"); }));
+    $("#af", root).onsubmit = async (e) => { e.preventDefault(); const o = {}; add.forEach((c) => { const v = e.target.elements[c.k].value.trim(); if (v !== "") o[c.k] = c.t === "number" ? +v : v; }); o.sort_order = rows.length + 1;
+      const { error } = await sb.from(table).insert(o); if (error) { $("#ae", root).textContent = mapErr(error); return; } toast("تمت الإضافة"); draw(); };
+  }; await draw();
+}
+PAGES.admin = () => boot("admin.html", async (m, c) => {
+  const TABS = [["roles", "الأدوار"], ["types", "أنواع التعزيز"], ["badges", "الأوسمة"], ["cats", "تصنيفات السلوك"], ["stat", "حالات الواقعة"], ["set", "الإعدادات العامة"], ["audit", "سجل العمليات"]];
+  let cur = new URLSearchParams(location.search).get("t") || "roles";
+  m.innerHTML = `<div class="tabs" id="tb">${TABS.map(([k, l]) => `<button data-t="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join("")}</div><div id="bd"></div>`;
+  const body = $("#bd"), kinds = [["positive", "إيجابي"], ["negative", "سلبي"]];
+  const draw = async () => { body.innerHTML = '<p class="sub">جارٍ التحميل…</p>';
+    try {
+      if (cur === "roles") {
+        const S = await rpc("qm_staff_list");
+        body.innerHTML = `<p class="sub">المعلم هو أي منسوب فعّال في النواة. عيّن هنا وكيل شؤون الطلاب والموجه الطلابي. الوكيل هو من يستقبل الوقائع من المعلمين.</p><div style="overflow:auto"><table class="tbl"><thead><tr><th>المنسوب</th><th>الوظيفة في النواة</th><th>وكيل شؤون الطلاب</th><th>الموجه الطلابي</th></tr></thead><tbody>${S.map((s) => `<tr><td>${esc(s.name)}</td><td><small>${esc(s.job || "")}</small></td>${["agent", "counselor"].map((r) => `<td><label class="tgl"><input type="checkbox" data-s="${s.id}" data-r="${r}" ${s["is_" + r] ? "checked" : ""} aria-label="${r}"><span></span></label></td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+        $$("[data-s]", body).forEach((el) => (el.onchange = async () => { try { await rpc("qm_set_role", { p_staff: el.dataset.s, p_role: el.dataset.r, p_on: el.checked }); toast("تم الحفظ"); } catch (e) { toast(mapErr(e), true); el.checked = !el.checked; } }));
+      } else if (cur === "types") await crud(body, "qm_reinforcement_types", [{ k: "name_ar", l: "الاسم" }, { k: "domain", l: "المجال", t: "select", o: [["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"], ["general", "عام"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "الاسم", req: 1 }, { k: "domain", l: "المجال", t: "select", o: [["general", "عام"], ["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }]);
+      else if (cur === "badges") await crud(body, "qm_badges", [{ k: "name_ar", l: "الاسم" }, { k: "description", l: "الوصف" }, { k: "criteria", l: "شروط الاستحقاق" }, { k: "icon", l: "الأيقونة" }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "اسم الوسام", req: 1 }, { k: "description", l: "الوصف" }, { k: "criteria", l: "شروط الاستحقاق" }, { k: "icon", l: "الأيقونة (trophy, star, users, up, chart)" }]);
+      else if (cur === "cats") await crud(body, "qm_behavior_categories", [{ k: "name_ar", l: "التصنيف" }, { k: "kind", l: "النوع", t: "select", o: kinds }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "التصنيف", req: 1 }, { k: "kind", l: "النوع", t: "select", o: kinds }]);
+      else if (cur === "stat") body.innerHTML = '<p class="sub">حالات الواقعة المسموح بها تحدد مسار الإجراءات في النظام. يمكن تعديل الاسم واللون والترتيب. الرموز البرمجية (code) ثابتة، وتغيير مسار الانتقال بين الحالات يحتاج تعديلاً برمجياً معتمداً.</p><div id="sc"></div>', await crud($("#sc", body), "qm_incident_statuses", [{ k: "code", l: "الرمز", ro: 1 }, { k: "name_ar", l: "الاسم" }, { k: "tone", l: "اللون", t: "select", o: [["ok", "أخضر: مكتمل"], ["info", "أزرق: قيد المعالجة"], ["warn", "برتقالي: يحتاج إجراء"], ["bad", "أحمر: تنبيه"], ["mute", "رمادي: غير نشط"]] }, { k: "sort_order", l: "الترتيب", t: "number" }], [{ k: "code", l: "الرمز (حروف إنجليزية)", req: 1 }, { k: "name_ar", l: "الاسم", req: 1 }]);
+      else if (cur === "set") {
+        const { data: s } = await sb.from("qm_settings").select("*").single();
+        body.innerHTML = `<form class="card form" id="sf"><div class="two"><div><label>الحد الأقصى لنقاط التعزيز الواحد</label><input id="mp" type="number" min="1" value="${s.max_points_per_award}"></div><div><label>مهلة منع التكرار (دقائق)</label><input id="dw" type="number" min="0" value="${s.duplicate_window_minutes}"></div></div><p class="sub">تمنع المهلة تسجيل تعزيز مطابق (المتعلم والنوع والمسجِّل) خلال المدة، لتفادي التكرار غير المقصود.</p><div class="acts"><button class="btn">حفظ</button></div></form>`;
+        $("#sf").onsubmit = async (e) => { e.preventDefault(); const { error } = await sb.from("qm_settings").update({ max_points_per_award: +$("#mp").value, duplicate_window_minutes: +$("#dw").value, updated_at: new Date().toISOString() }).eq("id", 1); toast(error ? mapErr(error) : "تم الحفظ", !!error); };
+      } else if (cur === "audit") {
+        const A = await rpc("qm_audit_list", { p_limit: 150 });
+        body.innerHTML = `<p class="sub">آخر ${A.length} عملية. القيم السابقة واللاحقة محفوظة في القاعدة.</p><div style="overflow:auto"><table class="tbl"><thead><tr><th>الوقت</th><th>المستخدم</th><th>العملية</th><th>السجل</th><th>السبب</th></tr></thead><tbody>${A.map((a) => `<tr><td><small>${esc(fmtT(a.created_at))}</small></td><td>${esc(a.actor || "—")}</td><td>${esc(a.action)}</td><td><small>${esc(a.table_name)}</small></td><td><small>${esc(a.reason || "")}</small></td></tr>`).join("")}</tbody></table></div>`;
+      }
+    } catch (e) { body.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; } };
+  $$("#tb button", m).forEach((b) => (b.onclick = () => { cur = b.dataset.t; $$("#tb button", m).forEach((x) => x.classList.toggle("on", x === b)); draw(); }));
+  await draw();
+}, { role: "admin" });

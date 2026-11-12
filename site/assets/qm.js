@@ -100,8 +100,11 @@ async function openStudentCard(id) {
     ${c.positive.length ? `<h4 class="sec">مواقف إيجابية</h4>${c.positive.map((p) => `<div class="item"><b>${esc(p.category)}</b> <small>${esc(fmtShort(p.created_at))}</small><p class="sub">${esc(p.description)}</p></div>`).join("")}` : ""}
     <h4 class="sec">حركة النقاط</h4>${L.rows.length ? `<table class="tbl"><tbody>${L.rows.map((r) => `<tr><td>${pts(r.points)}</td><td>${esc(r.reason || "")}${r.kind === "reversal" ? " (إلغاء)" : r.kind === "correction" ? " (تصحيح)" : ""}</td><td><small>${esc(r.by)} · ${esc(fmtShort(r.created_at))}</small></td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا حركات.</p>'}
     ${c.sensitive ? `<h4 class="sec">الوقائع السلوكية</h4>${c.incidents.length ? c.incidents.map((i) => `<div class="item"><b>واقعة ${i.no}</b> · ${esc(i.category)} ${tbadge(i.status_name, i.tone)} <small>${esc(fmtDay(i.occurred_on))}</small></div>`).join("") : '<p class="sub">لا وقائع.</p>'}` : ""}
+    ${(window.__qm?.isAdmin || window.__qm?.isAgent || window.__qm?.isCounselor) ? `<div class="acts mt"><button class="btn sm" data-badge>${ico("trophy")}منح وسام</button>${window.__qm.isAdmin ? `<button class="btn sm sec" data-adj>تصحيح الرصيد</button>` : ""}</div>` : ""}
     <p class="sub">بطاقة داخلية لمنسوبي المدرسة المخولين، وليست ملفاً إدارياً شاملاً.</p>`;
     $("[data-x]", md.el).onclick = md.close;
+    const bb = $("[data-badge]", md.el); if (bb) bb.onclick = () => awardBadge(id, () => { md.close(); openStudentCard(id); });
+    const ab = $("[data-adj]", md.el); if (ab) ab.onclick = () => adjustPoints(id, () => { md.close(); openStudentCard(id); });
   } catch (e) { md.el.innerHTML = `<p class="err">${esc(mapErr(e))}</p><button class="btn sec" data-x>إغلاق</button>`; $("[data-x]", md.el).onclick = md.close; }
 }
 
@@ -181,6 +184,7 @@ const NAV = [
   ["students.html", "دليل المتعلمين", "users", "بحث سريع وبطاقة المتعلم", "all"],
   ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
   ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
+  ["admin.html", "الإدارة", "gear", "الأدوار والإعدادات وسجل العمليات", "admin"],
 ];
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
@@ -195,6 +199,7 @@ async function boot(page, render, o = {}) {
   if (!who) { await doLogout("login.html?e=nostaff"); return; }
   const ctx = { who, uid: session.user.id, isAdmin: who.is_admin, isAgent: who.is_agent, isCounselor: who.is_counselor,
     role: who.is_agent ? "وكيل شؤون الطلاب" : who.is_counselor ? "الموجه الطلابي" : who.is_admin ? "مدير النواة الرقمية" : "المعلم" };
+  window.__qm = ctx;
   const ok = (r) => r === "all" || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
   const items = NAV.filter((n) => ok(n[4]));
@@ -226,4 +231,16 @@ async function boot(page, render, o = {}) {
   try { await render(main, ctx); } catch (e) { console.error(e); main.innerHTML = `<p class="err">تعذر تحميل الصفحة: ${esc(mapErr(e))}</p>`; }
   // فتح واقعة مباشرة من رابط إشعار (?i=)
   const q = new URLSearchParams(location.search).get("i"); if (q) openIncident(q);
+}
+
+async function awardBadge(studentId, done) {
+  const { data: B } = await sb.from("qm_badges").select("id,name_ar,description").eq("is_active", true).order("sort_order");
+  const md = modal(`<h3>منح وسام</h3><label>الوسام</label><select id="bd">${(B || []).map((b) => `<option value="${b.id}">${esc(b.name_ar)}</option>`).join("")}</select><label>سبب المنح (اختياري)</label><textarea id="bn" maxlength="300"></textarea><p class="err" id="be"></p><div class="acts mt"><button class="btn" id="ok">منح</button><button class="btn sec" id="no">رجوع</button></div>`);
+  $("#no", md.el).onclick = md.close;
+  $("#ok", md.el).onclick = async () => { try { await rpc("qm_award_badge", { p_student: studentId, p_badge: $("#bd", md.el).value, p_note: $("#bn", md.el).value }); md.close(); toast("تم منح الوسام"); done && done(); } catch (e) { $("#be", md.el).textContent = mapErr(e); } };
+}
+async function adjustPoints(studentId, done) {
+  const md = modal(`<h3>تصحيح رصيد النقاط</h3><p class="sub">يُسجَّل كحركة تصحيح موثقة في الدفتر، ولا يُعدَّل أي سجل سابق. استخدم رقماً سالباً للخصم.</p><label>عدد النقاط (موجب أو سالب)</label><input id="pp" type="number" step="1"><label>سبب التصحيح (مطلوب)</label><textarea id="pr" maxlength="300"></textarea><p class="err" id="pe"></p><div class="acts mt"><button class="btn" id="ok">تسجيل التصحيح</button><button class="btn sec" id="no">رجوع</button></div>`);
+  $("#no", md.el).onclick = md.close;
+  $("#ok", md.el).onclick = async () => { try { await rpc("qm_adjust_points", { p_student: studentId, p_points: +$("#pp", md.el).value, p_reason: $("#pr", md.el).value }); md.close(); toast("سُجّل التصحيح"); done && done(); } catch (e) { $("#pe", md.el).textContent = mapErr(e); } };
 }
