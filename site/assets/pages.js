@@ -306,3 +306,32 @@ Object.assign(PAGES, {
     const i = new URLSearchParams(location.search).get("i"); if (i) openCase(i);
   }, { role: "support" }),
 });
+
+Object.assign(PAGES, {
+  reports: () => boot("reports.html", async (m) => {
+    const d0 = new Date(Date.now() - 29 * 864e5).toLocaleDateString("en-CA", { timeZone: TZ });
+    m.innerHTML = `<div class="card form"><div class="grid2"><div><label>من تاريخ</label><input id="rf" type="date" value="${d0}"></div><div><label>إلى تاريخ</label><input id="rt" type="date" value="${todayISO()}"></div></div><p class="sub">تقرير مجمّع بالأعداد فقط، ولا يتضمن أسماء متعلمين.</p><div class="acts"><button class="btn" id="go">عرض التقرير</button><button class="btn sec" id="csv" disabled>تصدير CSV</button><button class="btn sec" id="pr" disabled>طباعة</button></div><p class="err" id="er"></p></div><div id="out"></div>`;
+    let R = null;
+    const blk = (t, rows) => `<div class="card"><h4 style="margin-top:0">${esc(t)}</h4>${rows.length ? rankRows(rows, "name", "n") : '<p class="sub">لا بيانات في الفترة.</p>'}</div>`;
+    const run = async () => { $("#er").textContent = ""; try {
+      R = await rpc("qm_report", { p_from: $("#rf").value, p_to: $("#rt").value });
+      const lv = (rows) => rows.map((r) => ({ ...r, name: LV[r.name] || r.name }));
+      $("#out").innerHTML = `<h3 class="sec">${esc(fmtDay(R.from))} إلى ${esc(fmtDay(R.to))}</h3><div class="grid">${kpi("check", R.reinforcements.total, "تعزيزاً", 1)}${kpi("star", R.reinforcements.points, "نقطة ممنوحة", 3)}${kpi("inbox", R.incidents.total, "واقعة مرصودة", 2)}${kpi("trophy", R.achievements.total, "إنجازاً موثقاً", 4)}${kpi("help", R.support.opened, "حالة دعم مفتوحة", 0)}${kpi("check", R.support.closed, "حالة دعم مغلقة", 1)}</div>
+      ${R.support.avg_improvement != null ? `<p class="sub">متوسط التحسن النهائي للحالات المغلقة: ${R.support.avg_improvement} من 5</p>` : ""}
+      <div class="grid mt">${blk("التعزيز حسب النوع", R.reinforcements.by_type)}${blk("التعزيز حسب الصف", R.reinforcements.by_grade)}${blk("الوقائع حسب التصنيف", R.incidents.by_category)}${blk("الوقائع حسب الحالة", R.incidents.by_status)}${blk("الإنجازات حسب التصنيف", R.achievements.by_category)}${blk("الإنجازات حسب المستوى", lv(R.achievements.by_level))}${blk("حالات الدعم حسب النوع", R.support.by_type)}</div>`;
+      $("#csv").disabled = $("#pr").disabled = false;
+    } catch (e) { $("#er").textContent = mapErr(e); } };
+    $("#go").onclick = run;
+    $("#pr").onclick = () => window.print();
+    $("#csv").onclick = () => {
+      const rows = [["القسم", "البند", "العدد"]];
+      const add = (s, a) => a.forEach((r) => rows.push([s, r.name, r.n]));
+      rows.push(["ملخص", "تعزيزات", R.reinforcements.total], ["ملخص", "نقاط", R.reinforcements.points], ["ملخص", "وقائع", R.incidents.total], ["ملخص", "إنجازات موثقة", R.achievements.total], ["ملخص", "حالات دعم مفتوحة", R.support.opened], ["ملخص", "حالات دعم مغلقة", R.support.closed]);
+      add("تعزيز حسب النوع", R.reinforcements.by_type); add("تعزيز حسب الصف", R.reinforcements.by_grade); add("وقائع حسب التصنيف", R.incidents.by_category); add("وقائع حسب الحالة", R.incidents.by_status);
+      add("إنجازات حسب التصنيف", R.achievements.by_category); add("إنجازات حسب المستوى", R.achievements.by_level.map((r) => ({ ...r, name: LV[r.name] || r.name }))); add("دعم حسب النوع", R.support.by_type);
+      const csv = "﻿" + rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = `qiyami-report-${R.from}-${R.to}.csv`; a.click(); URL.revokeObjectURL(a.href);
+    };
+    await run();
+  }, { role: "report" }),
+});

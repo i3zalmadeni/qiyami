@@ -187,6 +187,7 @@ const NAV = [
   ["support.html", "المتابعة والدعم", "help", "حالات الدعم التربوي وخطط المتابعة", "support"],
   ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
   ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
+  ["reports.html", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "report"],
   ["admin.html", "الإدارة", "gear", "الأدوار والإعدادات وسجل العمليات", "admin"],
 ];
 async function boot(page, render, o = {}) {
@@ -203,7 +204,7 @@ async function boot(page, render, o = {}) {
   const ctx = { who, uid: session.user.id, isAdmin: who.is_admin, isAgent: who.is_agent, isCounselor: who.is_counselor,
     role: who.is_agent ? "وكيل شؤون الطلاب" : who.is_counselor ? "الموجه الطلابي" : who.is_admin ? "مدير النواة الرقمية" : "المعلم" };
   window.__qm = ctx;
-  const ok = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
+  const ok = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "report" && (ctx.isAdmin || ctx.isAgent || ctx.isCounselor)) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
   const items = NAV.filter((n) => ok(n[4]));
   const cur = NAV.find((n) => n[0] === page) || [page, "لوحة التحكم", "grid", ""];

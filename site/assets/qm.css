@@ -222,3 +222,5 @@ header.dash .idl .moe{padding-inline-start:14px}
 .rank .n.g{background:linear-gradient(135deg,#f6c25e,#eaa83a);color:#3b2a06}
 .rank .v{font-weight:800;color:var(--brand2)}.rank .track{grid-column:2/-1;height:7px;border-radius:99px;background:var(--soft);overflow:hidden}.rank .track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#18a4ab,#f0b34a)}
 .rank small{color:var(--ink2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+@media print{header.dash,.pagebar,.acts,.card.form,footer{display:none!important}}
