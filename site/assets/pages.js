@@ -343,11 +343,12 @@ Object.assign(PAGES, {
     const s = await rpc("qm_student_profile", { p_student: id });
     const ini = (s.name || "").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join(" ");
     document.title = s.name + " – قيمي";
-    m.innerHTML = `<section class="sp-hero"><div class="sp-av" aria-hidden="true">${esc(ini)}</div><div class="sp-id"><small>الملف الشخصي للمتعلم</small><h2>${esc(s.name)}</h2><p>${esc(s.grade || "")}${s.section ? " · " + esc(s.section) : ""}${s.no ? " · رقم " + esc(s.no) : ""}</p>
+    m.innerHTML = `<section class="sp-hero"><div class="sp-av" aria-hidden="true">${esc(ini)}</div><div class="sp-id"><small>الملف الشخصي للمتعلم</small><h2>${esc(s.name)}</h2><p>المرحلة: المتوسطة · الصف: ${esc(s.grade || "—")}${s.section ? " · " + esc(s.section) : ""}${s.no ? " · رقم " + esc(s.no) : ""}</p>
         <div class="sp-chips">${s.badges.slice(0, 4).map((b) => `<span class="bdg-i">${ico(b.icon in ICONS ? b.icon : "trophy")}${esc(b.name)}</span>`).join("")}</div></div>
       <div class="sp-pts"><b>${s.balance}</b><span>نقطة</span>${s.balance > 0 ? `<small>الترتيب ${s.rank} في المدرسة</small>` : ""}</div></section>
       <div class="grid mt">${kpi("check", s.reinforcements, "تعزيزاً", 1)}${kpi("trophy", s.badges.length, "وساماً", 3)}${kpi("star", s.achievements.length, "إنجازاً موثقاً", 4)}${kpi("bulb", s.talents.length, "موهبة", 0)}</div>
       <div class="grid mt">
+        <div class="card" style="grid-column:1/-1"><h4 style="margin-top:0">من أين حصل على نقاطه؟</h4>${(s.by_type || []).length ? `<table class="tbl"><thead><tr><th>جانب التعزيز</th><th>عدد المرات</th><th>النقاط</th></tr></thead><tbody>${s.by_type.map((t) => `<tr><td><b>${esc(t.type)}</b></td><td>${t.n}</td><td>${pts(t.points)}</td></tr>`).join("")}</tbody><tfoot><tr><td><b>المجموع</b></td><td>${s.by_type.reduce((a, t) => a + t.n, 0)}</td><td>${pts(s.by_type.reduce((a, t) => a + (t.points || 0), 0))}</td></tr></tfoot></table>` : '<p class="sub">لا تعزيزات بعد.</p>'}</div>
         <div class="card"><h4 style="margin-top:0">من منح النقاط</h4>${s.givers.length ? rankRows(s.givers.map((g) => ({ name: g.name + " (" + g.n + " تعزيز)", points: g.points })), "name", "points") : '<p class="sub">لا نقاط ممنوحة بعد.</p>'}</div>
         <div class="card"><h4 style="margin-top:0">الأوسمة</h4>${s.badges.length ? s.badges.map((b) => `<div class="item"><div class="row2"><b>${ico(b.icon in ICONS ? b.icon : "trophy")} ${esc(b.name)}</b><small>${esc(fmtShort(b.at))}</small></div><small>منحه: ${esc(b.by)}</small></div>`).join("") : '<p class="sub">لا أوسمة بعد.</p>'}</div>
         <div class="card"><h4 style="margin-top:0">المواهب والقدرات</h4>${s.talents.length ? s.talents.map((t) => `<div class="item"><b>${esc(t.name)}</b> <small>${esc(t.field)}</small>${t.description ? `<p class="sub">${esc(t.description)}</p>` : ""}</div>`).join("") : '<p class="sub">لا مواهب مرصودة.</p>'}</div></div>
@@ -355,7 +356,7 @@ Object.assign(PAGES, {
       <h3 class="sec">سجل التعزيز</h3>${s.reinforcement_list.length ? s.reinforcement_list.map((r) => `<div class="item"><div class="row2"><div><b>${esc(r.type)}</b><br><small>منحه: ${esc(r.by)} · ${esc(fmtT(r.created_at))}</small></div>${r.points ? pts(r.points) : ""}</div>${r.description ? `<p class="sub">${esc(r.description)}</p>` : ""}</div>`).join("") : empty("check", "لا تعزيزات بعد")}
       ${s.positive.length ? `<h3 class="sec">مواقف إيجابية</h3>${s.positive.map((p) => `<div class="item"><div class="row2"><b>${esc(p.category)}</b><small>${esc(fmtShort(p.created_at))}</small></div><p class="sub">${esc(p.description)}</p><small>سجّلها: ${esc(p.by)}</small></div>`).join("")}` : ""}
       <p class="sub">ملف تعريفي يعرض الجانب الإيجابي فقط، ولا يتضمن بيانات تواصل أو سلوكية.</p>
-      <div class="acts mt"><a class="btn sec" href="balances.html">${ico("arrow")}العودة إلى لوحة التميز</a>${ctx.isAdmin || ctx.isAgent || ctx.isCounselor ? `<button class="btn sec" id="card">البطاقة الكاملة</button>` : ""}</div>`;
+      <div class="acts mt"><a class="btn sec" href="profiles.html">${ico("arrow")}ملفات الطلاب</a>${ctx.isAdmin || ctx.isAgent || ctx.isCounselor ? `<button class="btn sec" id="card">البطاقة الكاملة</button>` : ""}</div>`;
     const c = $("#card"); if (c) c.onclick = () => openStudentCard(id);
   }, { title: "ملف المتعلم", desc: "الجانب الإيجابي: النقاط ومن منحها والأوسمة والإنجازات" }),
 });

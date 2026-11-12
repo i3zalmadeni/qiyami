@@ -12,6 +12,8 @@ begin
     'reinforcements', (select count(*) from public.qm_reinforcements where student_id = s.id and voided_at is null),
     'givers', coalesce((select jsonb_agg(x order by x.points desc) from (select p.full_name as name, count(*) as n, sum(r.points) as points
         from public.qm_reinforcements r join public.staff_members p on p.id = r.given_by where r.student_id = s.id and r.voided_at is null group by p.full_name) x), '[]'::jsonb),
+    'by_type', coalesce((select jsonb_agg(x order by x.points desc, x.n desc) from (select t.name_ar as type, t.domain, count(*) as n, coalesce(sum(r.points), 0)::int as points
+        from public.qm_reinforcements r join public.qm_reinforcement_types t on t.id = r.type_id where r.student_id = s.id and r.voided_at is null group by t.name_ar, t.domain) x), '[]'::jsonb),
     'badges', coalesce((select jsonb_agg(jsonb_build_object('name', b.name_ar, 'icon', b.icon, 'at', sb.created_at, 'by', p.full_name) order by sb.created_at desc)
         from public.qm_student_badges sb join public.qm_badges b on b.id = sb.badge_id join public.staff_members p on p.id = sb.awarded_by where sb.student_id = s.id and sb.revoked_at is null), '[]'::jsonb),
     'reinforcement_list', coalesce((select jsonb_agg(x) from (select t.name_ar as type, r.points, r.description, p.full_name as by, r.created_at
