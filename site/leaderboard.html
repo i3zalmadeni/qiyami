@@ -1,8 +1,9 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>الصدارة – قيمي</title><meta name="description" content="أعلى المتعلمين نقاطاً في المدرسة والصف والفصل، تراكمياً أو لهذا الشهر"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/qm.css"><link rel="stylesheet" href="assets/about.css"><link rel="stylesheet" href="assets/honor.css"></head><body class="pubsite">
+<title>لوحة الصدارة وملفات الطلاب – قيمي</title><meta name="description" content="أعلى المتعلمين نقاطاً في المدرسة والصف والفصل، تراكمياً أو لهذا الشهر"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/qm.css"><link rel="stylesheet" href="assets/about.css"><link rel="stylesheet" href="assets/honor.css"></head><body class="pubsite">
 <div id="hdr"></div>
-<section class="hero3 slim"><div class="h3g"><div class="h3t"><span class="h3pill"><span class="tg" data-ico="trophy"></span>لوحة الصدارة · أفضل الطلاب</span><h1><em>أوائل</em> النقاط</h1><p class="h3p">الأعلى نقاطاً في المدرسة أو الصف أو الفصل، بالرصيد التراكمي أو برصيد هذا الشهر.</p></div></div></section>
+<section class="hero3 slim"><div class="h3g"><div class="h3t"><span class="h3pill"><span class="tg" data-ico="trophy"></span>لوحة الصدارة · أفضل الطلاب</span><h1><em>أوائل</em> النقاط</h1><p class="h3p">الأعلى نقاطاً في المدرسة أو الصف أو الفصل، بالرصيد التراكمي أو برصيد هذا الشهر، وتحتها جميع الطلاب.</p><p class="h3p"><a class="btn" href="#dirsec">عرض جميع الطلاب</a></p></div></div></section>
 <main class="hb-wrap" id="lb" style="padding-bottom:40px"><p class="hb-empty">جارٍ التحميل…</p></main>
+<section class="hb-wrap" id="dirsec" style="padding-bottom:40px"><div class="hb-h"><div><h2>جميع الطلاب</h2><p>اختر الصف والفصل أو ابحث بالاسم، ثم افتح ملف المتعلم لترى أوسمته ونقاطه ومن منحها.</p></div></div><div id="dir"></div></section>
 <div id="ftr"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="assets/config.js"></script><script src="assets/chrome.js"></script><script src="assets/qm.js"></script><script src="assets/about-icons.js"></script>
@@ -38,5 +39,30 @@ pubInit("leaderboard.html");
     } catch (e) { out.innerHTML = `<p class="hb-empty">${esc(mapErr(e))}</p>`; }
   };
   await draw();
+})();
+(async () => {
+  const droot = document.getElementById("dir"), $i = (id) => document.getElementById(id);
+  const F = await rpc("qm_pub_filters").catch(() => null); if (!F) return;
+  
+  const st = { grade: "", section: "", q: "", page: 0 }, N = 48;
+  droot.innerHTML = `<div class="hb-panel hb-filters"><div><label for="dsg">المرحلة</label><select id="dsg"><option>المتوسطة</option></select></div><div><label for="dgr">الصف</label><select id="dgr"><option value="">كل الصفوف</option>${F.grades.map((g) => `<option value="${esc(g.code)}">${esc(g.name)}</option>`).join("")}</select></div><div><label for="dse">الفصل</label><select id="dse"></select></div><div><label for="dq">بحث بالاسم</label><input id="dq" type="search" placeholder="اكتب جزءاً من الاسم"></div></div><div id="drs"></div>`;
+  const secs = () => { $i("dse").innerHTML = `<option value="">كل الفصول</option>` + F.sections.filter((s) => st.grade && s.grade === st.grade).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join(""); $i("dse").value = st.section; $i("dse").disabled = !st.grade; };
+  const load = async () => {
+    const out = $i("drs");
+    try {
+      const D = await rpc("qm_pub_directory", { p_grade: st.grade || null, p_section: st.section || null, p_q: st.q || null, p_limit: N, p_offset: st.page * N });
+      if (!D.rows.length) { out.innerHTML = `<div class="hb-panel" style="margin-top:22px"><p class="hb-empty">لا متعلمين مطابقين. جرّب اسماً آخر أو صفاً آخر.</p></div>`; return; }
+      const pages = Math.ceil(D.total / N);
+      out.innerHTML = `<p class="hb-note">${D.total} متعلماً</p><div class="hb-dir">${D.rows.map((x) => `<a class="hb-st" href="student.html?id=${x.id}"><span class="hb-ini" aria-hidden="true">${esc(initials(x.name))}</span><span><b>${esc(x.name)}</b><small>${klass(x)}</small><span class="tags"><span>${ico("star")}${x.balance} نقطة</span>${x.badges ? `<span class="g">${ico("medal")}${x.badges} ${x.badges > 10 || x.badges < 3 ? "وسام" : "أوسمة"}</span>` : ""}</span></span></a>`).join("")}</div>
+        ${pages > 1 ? `<div class="hb-pager"><button class="btn sec" id="dpv" ${st.page ? "" : "disabled"}>السابق</button><span class="sub">صفحة ${st.page + 1} من ${pages}</span><button class="btn sec" id="dnx" ${st.page + 1 < pages ? "" : "disabled"}>التالي</button></div>` : ""}`;
+      const pv = $i("dpv"), nx = $i("dnx");
+      if (pv) pv.onclick = () => { st.page--; load(); document.getElementById("dir").scrollIntoView(); };
+      if (nx) nx.onclick = () => { st.page++; load(); document.getElementById("dir").scrollIntoView(); };
+    } catch (e) { out.innerHTML = `<p class="hb-empty">${esc(mapErr(e))}</p>`; }
+  };
+  $i("dgr").onchange = (e) => { st.grade = e.target.value; st.section = ""; st.page = 0; secs(); load(); };
+  $i("dse").onchange = (e) => { st.section = e.target.value; st.page = 0; load(); };
+  let t; $i("dq").oninput = (e) => { clearTimeout(t); t = setTimeout(() => { st.q = e.target.value.trim(); st.page = 0; load(); }, 300); };
+  secs(); load();
 })();
 </script></body></html>
