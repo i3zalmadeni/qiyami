@@ -419,3 +419,26 @@ header.dash .idl .moe{padding-inline-start:14px}
 @media (max-width:640px){.gr-row{grid-template-columns:auto 1fr auto;row-gap:6px}.gr-row .bal{display:none}.gr-bar{border-radius:0}}
 .ck{display:flex;align-items:center;gap:8px;font-weight:600;margin-top:10px;cursor:pointer}.ck input{width:20px;height:20px;flex:none;accent-color:var(--brand);margin:0}
 .gr-bar .btn{flex-direction:row;white-space:nowrap;width:auto}
+
+/* ===== القائمة العلوية للموقع العام: صف واحد مضغوط، وقائمة الجوال بمسافات قليلة ===== */
+.pubsite header .top{min-height:60px;padding-block:6px;gap:10px;flex-wrap:nowrap}
+.pubsite header .top nav{flex:1 1 auto;min-width:0;gap:2px;justify-content:center;flex-wrap:nowrap}
+.pubsite header nav a{padding:8px 11px!important;gap:6px;font-size:.95rem;white-space:nowrap}
+.pubsite header nav a .ico{width:17px;height:17px}
+.pubsite header .hid{gap:10px;flex:none}
+.pubsite header .hid .moe{padding-inline-start:10px}
+.pubsite header .bm small{display:block;line-height:1.2}
+@media (max-width:1180px){.pubsite header .hid .hcb small,.pubsite header .hid .moe small{display:none}.pubsite header nav a{padding:8px 9px!important}}
+@media (max-width:980px){.pubsite header .hid .moe{display:none}.pubsite header nav a .ico{display:none}}
+@media (max-width:860px){.pubsite header .hid{display:none}}
+@media (max-width:860px){
+  .pubsite header .top{flex-wrap:wrap;min-height:56px;gap:6px}
+  .pubsite header .top nav{flex-basis:100%;order:9;flex-direction:column;align-items:stretch;gap:0;padding:0 0 8px;display:none}
+  .pubsite header .top nav.open{display:flex}
+  .pubsite header nav a{padding:11px 12px!important;font-size:1rem;border-bottom:1px solid var(--line);border-radius:0!important}
+  .pubsite header nav a:last-child{border-bottom:0}
+  .pubsite header nav a .ico{display:block}
+  .pubsite header .navtoggle{margin-inline-start:auto}
+}
+.pubsite header .bm small{white-space:nowrap}
+@media (max-width:1180px){.pubsite header .hid .moe{display:none}}
