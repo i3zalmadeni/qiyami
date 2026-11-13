@@ -192,7 +192,7 @@ function bindIncidents(root, reload) {
 // ===== الهيكل: ترويسة لوحة التحكم بنمط أنظمة النواة، والقائمة بحسب الدور =====
 // r: all | agent | counselor | admin
 const NAV = [
-  ["dashboard.html", "الرئيسية", "home", "ما يخصك الآن ومؤشرات الرعاية", "all"],
+  ["dashboard.html", "مكتبي الإلكتروني", "grid", "مهامك ومتابعاتك وما يدور في المنصة الآن", "all"],
   ["positive.html", "السلوك الإيجابي", "medal", "منح النقاط والأوسمة وسجل التعزيز والأرصدة والإنجازات", "all"],
   ["negative.html", "السلوك السلبي", "flag", "تسجيل الوقائع السلوكية ومتابعة ما رفعتَه", "all"],
   ["students.html", "دليل المتعلمين", "users", "بحث سريع وبطاقة المتعلم", "all"],
@@ -200,8 +200,7 @@ const NAV = [
   ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
   ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
   ["reports.html", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "report"],
-  ["points.html", "إدارة النقاط", "star", "إضافة النقاط وتعديلها وحذفها", "admin"],
-  ["admin.html", "الإدارة", "gear", "الأدوار والإعدادات وسجل العمليات", "admin"],
+  ["admin.html", "الإدارة", "gear", "الأدوار والنقاط والأوسمة والتصنيفات والإعدادات", "admin"],
 ];
 // الصفحات المجمّعة: صفحة واحدة في القائمة تندرج تحتها صفحات فرعية (?tab=)
 const HUBS = {
@@ -216,11 +215,23 @@ const HUBS = {
     ["behavior", "تسجيل السلوك", "plus", "واقعة سلوكية تُرفع إلى وكيل شؤون الطلاب"],
     ["incidents", "وقائعي", "inbox", "الوقائع التي رفعتَها وحالتها"],
   ],
+  "admin.html": [
+    ["roles", "الأدوار", "users", "تعيين وكيل شؤون الطلاب والموجه الطلابي"],
+    ["points", "إدارة النقاط", "star", "إضافة نقاط المتعلم وتعديلها وحذفها"],
+    ["types", "أنواع التعزيز", "list", "أنواع التعزيز ونقاطها المقترحة وطريقة استحقاقها"],
+    ["badges", "الأوسمة", "medal", "الأوسمة وصورها ونقاطها وسبب استحقاقها"],
+    ["levels", "المستويات", "chart", "مستويات الطلاب وحدودها من الرصيد التراكمي"],
+    ["cats", "تصنيفات السلوك", "flag", "تصنيفات المواقف الإيجابية والوقائع السلبية"],
+    ["stat", "حالات الواقعة", "compass", "أسماء حالات الواقعة وألوانها وترتيبها"],
+    ["set", "الإعدادات العامة", "gear", "حد النقاط ومهلة منع التكرار"],
+    ["audit", "سجل العمليات", "clock", "آخر العمليات المسجلة في النظام"],
+  ],
 };
+const HUB_FN = { "admin.html": "adminTab" };
 function openHub(page) {
-  const tabs = HUBS[page]; let tab = new URLSearchParams(location.search).get("tab");
+  const tabs = HUBS[page], qs = new URLSearchParams(location.search); let tab = qs.get("tab") || (page === "admin.html" ? qs.get("t") : null);
   if (!tabs.some((t) => t[0] === tab)) tab = tabs[0][0];
-  window.__hub = { page, tab, tabs }; PAGES[tab]();
+  const hub = (window.__hub = { page, tab, tabs }); hub.run = () => (PAGES[hub.tab] || PAGES[HUB_FN[page]])(); hub.run();
 }
 async function boot(page, render, o = {}) {
   const hub = window.__hub;
@@ -277,7 +288,7 @@ async function boot(page, render, o = {}) {
       $(".pb-d").textContent = t[3]; document.title = t[1] + " – " + cur[1] + " – قيمي"; };
     hub.go = async (fn) => { hub.busy = true; main.innerHTML = ""; mark(); await draw(fn); hub.busy = false; };
     links.forEach((a) => (a.onclick = (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); if (hub.busy || a.dataset.tab === hub.tab) return;
-      hub.tab = a.dataset.tab; history.pushState(null, "", hub.page + "?tab=" + hub.tab); PAGES[hub.tab](); }));
+      hub.tab = a.dataset.tab; history.pushState(null, "", hub.page + "?tab=" + hub.tab); hub.run(); }));
     addEventListener("popstate", () => location.reload());
     await hub.go(render);
   } else await draw(render);

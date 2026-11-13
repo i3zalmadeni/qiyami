@@ -13,25 +13,65 @@ const rankRows = (rows, key, val) => { const mx = Math.max(1, ...rows.map((r) =>
 
 const PAGES = {
   dashboard: () => boot("dashboard.html", async (m, c) => {
-    const [d, mine, x] = await Promise.all([rpc("qm_dashboard", { p_days: 14 }), rpc("qm_incidents_list", { p_scope: "mine", p_limit: 5 }), rpc("qm_dashboard_ext").catch(() => ({}))]);
+    const nz = (p) => p.catch(() => null);
+    const [d, x0, H0, mine, myR, inbox, cases, review] = await Promise.all([
+      rpc("qm_dashboard", { p_days: 14 }), nz(rpc("qm_dashboard_ext")), nz(rpc("qm_pub_home")),
+      rpc("qm_incidents_list", { p_scope: "mine", p_limit: 5 }), nz(rpc("qm_reinforcements_list", { p_mine: true, p_limit: 5 })),
+      c.isAgent ? nz(rpc("qm_incidents_list", { p_scope: "inbox", p_limit: 5 })) : null,
+      c.isCounselor ? nz(rpc("qm_incidents_list", { p_scope: "counselor", p_limit: 40 })) : null,
+      c.isAdmin ? nz(rpc("qm_achievements_list", { p_scope: "review", p_limit: 5 })) : null,
+    ]);
+    const x = x0 || {}, H = H0 || {}, hs = H.stats || {}, sup = c.isAgent || c.isCounselor;
+    // المهام: ما ينتظر إجراء صاحب المكتب نفسه بحسب دوره
+    const T = [], add = (n, ic, t, sb2, h) => { if (n > 0) T.push({ n, ic, t, s: sb2, h }); };
+    add(d.my_needs_action, "help", "وقائع تنتظر استكمالك", "طُلبت منك معلومات إضافية عن وقائع رفعتَها", "negative.html?tab=incidents");
+    add(x.my_achievements_needs, "trophy", "إنجازات تحتاج استكمالاً", "أُعيدت إليك لاستكمال بياناتها أو شواهدها", "positive.html?tab=achievements&t=mine");
+    if (c.isAgent) { add(d.incidents_new, "inbox", "وقائع جديدة في صندوق الوكيل", "رفعها المعلمون وتنتظر بدء المراجعة", "agent.html"); add(d.incidents_overdue, "hourglass", "وقائع تأخرت أكثر من 3 أيام", "لم يُتخذ فيها إجراء منذ رصدها", "agent.html"); }
+    if (c.isCounselor) add(d.incidents_referred, "users", "حالات محالة إلى الموجه الطلابي", "أحالها وكيل شؤون الطلاب للمتابعة الإرشادية", "counselor.html");
+    if (c.isAdmin) add(x.achievements_pending, "clock", "إنجازات بانتظار التحقق", "سجّلها المعلمون وتنتظر التوثيق", "positive.html?tab=achievements&t=review");
+    if (sup) { add(x.support_new, "help", "حالات دعم جديدة", "فُتحت ولم تُستلم بعد", "support.html"); add(x.support_due, "calendar", "متابعات دعم حان موعدها", "حالات تجاوزت موعد متابعتها", "support.html"); }
+    const tasks = T.reduce((n, t) => n + (t.ic === "hourglass" ? 0 : t.n), 0); // المتأخرة محسوبة ضمن الجديدة
+    const QA = [["positive.html", "plus", "منح نقاط أو وسام", "حسب الصف والفصل", 1], ["positive.html?tab=note", "check", "موقف إيجابي", "توثيق بلا نقاط"], ["negative.html", "flag", "تسجيل سلوك سلبي", "يُرفع إلى الوكيل"], ["positive.html?tab=achievements&t=add", "trophy", "تسجيل إنجاز", "مع الشواهد"], ["students.html", "users", "دليل المتعلمين", "بحث وبطاقة المتعلم"]];
+    if (c.isAgent) QA.push(["agent.html", "inbox", "صندوق الوكيل", "الوقائع الواردة"]);
+    if (c.isCounselor) QA.push(["counselor.html", "help", "الحالات الإجرائية", "المحالة إليك"]);
+    if (sup) QA.push(["support.html", "help", "المتابعة والدعم", "حالات الدعم التربوي"]);
+    if (c.isAdmin || sup) QA.push(["reports.html", "chart", "التقارير", "مؤشرات الفترة"]);
+    if (c.isAdmin) QA.push(["admin.html", "gear", "الإدارة", "الأدوار والإعدادات"]);
+    // آخر ما جرى: تُجمع عمليات المنح الجماعي (المانح والنوع والوقت نفسه) في سطر واحد
+    const ev = [];
+    (H.last_points || []).forEach((p) => { const k = ev.find((e) => e.k === "p" && e.at === p.at && e.by === p.by && e.type === p.type && e.points === p.points); if (k) k.n++; else ev.push({ k: "p", n: 1, ...p }); });
+    (H.last_badges || []).forEach((bg) => ev.push({ k: "b", n: 1, ...bg }));
+    ev.sort((a, b2) => new Date(b2.at) - new Date(a.at));
+    const feed = ev.slice(0, 8).map((e) => `<div class="fd"><span class="fd-ic ${e.k}">${ico(e.k === "b" ? "medal" : "star")}</span><div>${e.k === "b"
+      ? `<b><a href="student.html?id=${e.id}">${esc(shortName(e.name))}</a></b> نال «${esc(e.badge)}»`
+      : e.n > 1 ? `<b>${e.n} ${e.n > 10 ? "متعلماً" : "متعلمين"}</b> نالوا ${pts(e.points)} لكلٍّ منهم · ${esc(e.type)}` : `<b><a href="student.html?id=${e.id}">${esc(shortName(e.name))}</a></b> نال ${pts(e.points)} · ${esc(e.type)}`}
+      <small>${esc(e.by)} · ${esc(e.grade || "")}${e.section ? "، " + esc(e.section) : ""} · ${esc(ago(e.at))}</small></div></div>`).join("");
+    const openCases = (cases || []).filter((i) => !i.is_closed).slice(0, 5);
+    const queue = (t, href, rows, html) => (rows && rows.length ? `<div class="hd"><h3 class="sec">${t}</h3><a href="${href}">عرض الكل</a></div>${rows.map(html).join("")}` : "");
+    const pl = (v, t) => `<div><b>${v ?? 0}</b><span>${t}</span></div>`;
     const sens = d.incidents_new !== null && d.incidents_new !== undefined;
-    const kp = [kpi("users", d.students, "متعلماً مرتبطاً بالنواة", 0), kpi("check", d.reinforcements, "عملية تعزيز", 1), kpi("star", d.points, "نقطة ممنوحة (الرصيد الصافي)", 3), kpi("trophy", d.badges, "وسام ممنوح", 4)];
-    const mk = [kpi("plus", d.my_reinforcements, "تعزيزاً سجّلتُه", 1), kpi("inbox", d.my_incidents, "واقعة رفعتُها", 0), kpi("help", d.my_needs_action, "تنتظر استكمالك", 2)];
-    const wk = sens ? [kpi("inbox", d.incidents_new, "وقائع جديدة مرصودة", 2), kpi("clock", d.incidents_with_agent, "لدى وكيل شؤون الطلاب", 0), kpi("users", d.incidents_referred, "محالة للموجه الطلابي", 3), ...(d.incidents_overdue !== null ? [kpi("hourglass", d.incidents_overdue, "تأخرت أكثر من 3 أيام", 4)] : [])] : [];
-    m.innerHTML = `<section class="dash-hero"><div><h2>مرحباً ${esc(c.who.name)}</h2><p>${esc(fmtDay(todayISO()))} · ${esc(fmtHijri(todayISO()))}</p></div><span class="yr"><i></i>${esc(c.role)}</span></section>
-    ${d.my_needs_action ? `<div class="alert mt"><b>${d.my_needs_action} واقعة تنتظر استكمالك للمعلومات.</b> <a href="negative.html?tab=incidents">افتح وقائعي</a></div>` : ""}
-    <h3 class="sec">مهامي</h3><div class="grid">${mk.join("")}</div>
-    ${sens ? `<h3 class="sec">الوقائع السلوكية</h3><div class="grid">${wk.join("")}</div>` : ""}
-    <h3 class="sec">المدرسة</h3><div class="grid">${kp.join("")}</div>
-    <h3 class="sec">الإنجاز والدعم</h3><div class="grid">${[kpi("trophy", x.achievements, "إنجازاً موثقاً", 4), kpi("star", x.talents, "موهبة مرصودة", 3), ...(x.achievements_pending != null ? [kpi("clock", x.achievements_pending, "إنجازاً بانتظار التحقق", 2)] : []), ...(x.support_active != null ? [kpi("help", x.support_active, "حالة دعم نشطة", 0), kpi("hourglass", x.support_due, "متابعة متأخرة", 2)] : [])].join("")}</div>
-    <div class="grid mt"><div class="card"><h4 style="margin-top:0">التعزيز اليومي (آخر 14 يوماً)</h4>${bars(d.series)}</div>
-      <div class="card"><h4 style="margin-top:0">حسب نوع التعزيز</h4>${rankRows(d.by_type, "type", "n")}</div>
-      <div class="card"><h4 style="margin-top:0">حسب الصف</h4>${rankRows(d.by_grade, "grade", "n")}</div></div>
-    <h3 class="sec">أحدث العمليات</h3>${d.recent.length ? d.recent.map((r) => `<div class="item"><div class="row2"><div><b>${esc(r.student)}</b> · ${esc(r.type)}</div><span>${r.points ? pts(r.points) : ""} <small>${esc(ago(r.created_at))}</small></span></div></div>`).join("") : empty("check", "لا تعزيزات بعد", "ابدأ بتسجيل أول تعزيز.")}
-    <h3 class="sec">آخر وقائعي</h3><div id="mi">${mine.length ? mine.map(incidentCard).join("") : '<p class="sub">لم ترفع وقائع.</p>'}</div>
-    <div class="acts mt"><a class="btn" href="positive.html">${ico("plus")}منح النقاط والأوسمة</a><a class="btn sec" href="negative.html">تسجيل سلوك سلبي</a></div>
-    <p class="sub">المؤشرات من قاعدة البيانات مباشرة، وتغطي ${esc(fmtShort(d.since))} إلى اليوم في المخططات.</p>`;
-    bindIncidents($("#mi"), () => location.reload());
+    m.innerHTML = `<section class="dash-hero"><div><h2>مرحباً ${esc(c.who.name)}</h2><p>${esc(fmtDay(todayISO()))} · ${esc(fmtHijri(todayISO()))}</p></div><span class="yr"><i></i>${tasks ? `${tasks} بانتظار إجرائك` : "لا مهام معلّقة"}</span></section>
+    <div class="qa">${QA.map(([h, i, t, sb2, pri]) => `<a class="qa-i ${pri ? "pri" : ""}" href="${h}"><span class="ic">${ico(i)}</span><span>${t}<small>${sb2}</small></span></a>`).join("")}</div>
+    <div class="desk"><div>
+      <h3 class="sec">بانتظار إجرائك</h3>
+      ${T.length ? T.map((t) => `<a class="task" href="${t.h}"><span class="n">${t.n}</span><div><b>${t.t}</b><small>${t.s}</small></div><span class="go">فتح</span></a>`).join("") : empty("check", "لا شيء ينتظرك الآن", "تظهر هنا الوقائع والإنجازات والحالات التي تحتاج إجراءً منك.")}
+      ${queue("الوارد إلى صندوق الوكيل", "agent.html", inbox, incidentCard)}
+      ${queue("حالات محالة إليك", "counselor.html", openCases, incidentCard)}
+      ${queue("إنجازات تنتظر توثيقك", "positive.html?tab=achievements&t=review", review, achItem)}
+      <div class="hd"><h3 class="sec">وقائع رفعتُها</h3><a href="negative.html?tab=incidents">عرض الكل (${d.my_incidents ?? 0})</a></div>
+      ${mine.length ? mine.map(incidentCard).join("") : '<p class="sub">لم ترفع وقائع بعد.</p>'}
+      <div class="hd"><h3 class="sec">آخر ما منحتُه</h3><a href="positive.html?tab=reinforcements">سجل التعزيز (${d.my_reinforcements ?? 0})</a></div>
+      ${myR && myR.length ? myR.map((r) => `<div class="item ${r.voided_at ? "void" : ""}"><div class="row2"><div><b><a href="student.html?id=${r.student_id}">${esc(r.student)}</a></b> · ${esc(r.type)}<br><small>${esc(r.grade || "")}${r.section ? " · " + esc(r.section) : ""} · ${esc(ago(r.created_at))}</small></div>${r.voided_at ? '<span class="badge bad">ملغى</span>' : r.points ? pts(r.points) : '<span class="badge">بلا نقاط</span>'}</div></div>`).join("") : '<p class="sub">لم تمنح نقاطاً بعد. ابدأ من «منح نقاط أو وسام».</p>'}
+    </div><aside>
+      <h3 class="sec">ما يدور في المنصة</h3>
+      <div class="card"><div class="pulse">${pl(hs.week, "عملية منح هذا الأسبوع")}${pl(hs.month_points, "نقطة هذا الشهر")}${pl(hs.students_awarded, "متعلماً نال تعزيزاً")}${pl(d.badges, "وساماً ممنوحاً")}${pl(x.achievements, "إنجازاً موثقاً")}${pl(x.talents, "موهبة مرصودة")}</div></div>
+      ${sens ? `<div class="card"><h4 style="margin-top:0">مسار الوقائع السلوكية</h4><div class="pulse p3">${pl(d.incidents_new, "جديدة")}${pl(d.incidents_with_agent, "لدى الوكيل")}${pl(d.incidents_referred, "لدى الموجه")}</div></div>` : ""}
+      <div class="card"><h4 style="margin-top:0">آخر ما جرى</h4>${feed || '<p class="sub">لا حركات بعد.</p>'}</div>
+      <div class="card"><h4 style="margin-top:0">الأكثر منحاً</h4>${rankRows((H.givers || []).slice(0, 5), "name", "awards")}</div>
+      <div class="card"><div class="hd"><h4 style="margin:0">متصدرو النقاط</h4><a href="leaderboard.html">لوحة الصدارة</a></div>${(H.top || []).slice(0, 5).map((r, i) => `<div class="rank"><span class="n ${i === 0 ? "g" : ""}">${i + 1}</span><b><a href="student.html?id=${r.id}">${esc(shortName(r.name))}</a></b><span class="v">${r.balance}</span></div>`).join("") || '<p class="sub">لا أرصدة بعد.</p>'}</div>
+    </aside></div>`;
+    bindIncidents(m, () => location.reload());
+    m.addEventListener("click", (e) => { const el = e.target.closest("[data-ach]"); if (el) openAchievement(el.dataset.ach, () => location.reload()); });
   }),
 
   reinforce: () => boot("positive.html", async (m, c) => {
@@ -279,10 +319,10 @@ async function levelsAdmin(root) {
   };
   await draw();
 }
-PAGES.admin = () => boot("admin.html", async (m, c) => {
-  const TABS = [["roles", "الأدوار"], ["types", "أنواع التعزيز"], ["badges", "الأوسمة"], ["levels", "المستويات"], ["cats", "تصنيفات السلوك"], ["stat", "حالات الواقعة"], ["set", "الإعدادات العامة"], ["audit", "سجل العمليات"]];
-  let cur = new URLSearchParams(location.search).get("t") || "roles";
-  m.innerHTML = `<div class="tabs" id="tb">${TABS.map(([k, l]) => `<button data-t="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join("")}</div><div id="bd"></div>`;
+PAGES.admin = () => openHub("admin.html");
+PAGES.adminTab = () => boot("admin.html", async (m, c) => {
+  let cur = window.__hub.tab;
+  m.innerHTML = `<div id="bd"></div>`;
   const body = $("#bd"), kinds = [["positive", "إيجابي"], ["negative", "سلبي"]];
   const draw = async () => { body.innerHTML = '<p class="sub">جارٍ التحميل…</p>';
     try {
@@ -304,7 +344,6 @@ PAGES.admin = () => boot("admin.html", async (m, c) => {
         body.innerHTML = `<p class="sub">آخر ${A.length} عملية. القيم السابقة واللاحقة محفوظة في القاعدة.</p><div style="overflow:auto"><table class="tbl"><thead><tr><th>الوقت</th><th>المستخدم</th><th>العملية</th><th>السجل</th><th>السبب</th></tr></thead><tbody>${A.map((a) => `<tr><td><small>${esc(fmtT(a.created_at))}</small></td><td>${esc(a.actor || "—")}</td><td>${esc(a.action)}</td><td><small>${esc(a.table_name)}</small></td><td><small>${esc(a.reason || "")}</small></td></tr>`).join("")}</tbody></table></div>`;
       }
     } catch (e) { body.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; } };
-  $$("#tb button", m).forEach((b) => (b.onclick = () => { cur = b.dataset.t; $$("#tb button", m).forEach((x) => x.classList.toggle("on", x === b)); draw(); }));
   await draw();
 }, { role: "admin" });
 
@@ -422,28 +461,37 @@ Object.assign(PAGES, {
 
 Object.assign(PAGES, {
   reports: () => boot("reports.html", async (m) => {
-    const d0 = new Date(Date.now() - 29 * 864e5).toLocaleDateString("en-CA", { timeZone: TZ });
-    m.innerHTML = `<div class="card form"><div class="grid2"><div><label>من تاريخ</label><input id="rf" type="date" value="${d0}"></div><div><label>إلى تاريخ</label><input id="rt" type="date" value="${todayISO()}"></div></div><p class="sub">تقرير مجمّع بالأعداد فقط، ولا يتضمن أسماء متعلمين.</p><div class="acts"><button class="btn" id="go">عرض التقرير</button><button class="btn sec" id="csv" disabled>تصدير CSV</button><button class="btn sec" id="pr" disabled>طباعة</button></div><p class="err" id="er"></p></div><div id="out"></div>`;
+    const iso = (dt) => dt.toLocaleDateString("en-CA", { timeZone: TZ }), back = (n) => iso(new Date(Date.now() - n * 864e5)), t0 = todayISO();
+    const RNG = { w: ["آخر 7 أيام", back(6)], m: ["هذا الشهر", t0.slice(0, 8) + "01"], d30: ["آخر 30 يوماً", back(29)], d90: ["آخر 90 يوماً", back(89)] };
+    m.innerHTML = `<div class="card form"><div class="tabs" id="rq">${Object.entries(RNG).map(([k, v]) => `<button type="button" data-q="${k}" class="${k === "d30" ? "on" : ""}">${v[0]}</button>`).join("")}</div><div class="grid2"><div><label for="rf">من تاريخ</label><input id="rf" type="date" max="${t0}" value="${RNG.d30[1]}"></div><div><label for="rt">إلى تاريخ</label><input id="rt" type="date" max="${t0}" value="${t0}"></div></div><p class="sub">تقرير مجمّع بالأعداد فقط، ولا يتضمن أسماء متعلمين.</p><div class="acts"><button class="btn" id="go">عرض التقرير</button><button class="btn sec" id="csv" disabled>تصدير CSV</button><button class="btn sec" id="pr" disabled>طباعة</button></div><p class="err" id="er" role="alert"></p></div><div id="rep"></div>`;
     let R = null;
     const blk = (t, rows) => `<div class="card"><h4 style="margin-top:0">${esc(t)}</h4>${rows.length ? rankRows(rows, "name", "n") : '<p class="sub">لا بيانات في الفترة.</p>'}</div>`;
-    const run = async () => { $("#er").textContent = ""; try {
-      R = await rpc("qm_report", { p_from: $("#rf").value, p_to: $("#rt").value });
+    const run = async () => { const er = $("#er"), f = $("#rf").value, t = $("#rt").value, go = $("#go"); er.textContent = "";
+      if (!f || !t) { er.textContent = "حدّد تاريخ البداية وتاريخ النهاية."; return; }
+      if (f > t) { er.textContent = "تاريخ البداية بعد تاريخ النهاية."; return; }
+      go.disabled = true; try {
+      R = await rpc("qm_report", { p_from: f, p_to: t });
       const lv = (rows) => rows.map((r) => ({ ...r, name: LV[r.name] || r.name }));
-      $("#out").innerHTML = `<h3 class="sec">${esc(fmtDay(R.from))} إلى ${esc(fmtDay(R.to))}</h3><div class="grid">${kpi("check", R.reinforcements.total, "تعزيزاً", 1)}${kpi("star", R.reinforcements.points, "نقطة ممنوحة", 3)}${kpi("inbox", R.incidents.total, "واقعة مرصودة", 2)}${kpi("trophy", R.achievements.total, "إنجازاً موثقاً", 4)}${kpi("help", R.support.opened, "حالة دعم مفتوحة", 0)}${kpi("check", R.support.closed, "حالة دعم مغلقة", 1)}</div>
+      const none = !(R.reinforcements.total || R.incidents.total || R.achievements.total || R.support.opened || R.support.closed);
+      $("#rep").innerHTML = `<h3 class="sec">تقرير قيمي: ${esc(fmtDay(R.from))} إلى ${esc(fmtDay(R.to))}</h3>${none ? '<p class="sub">لا سجلات في هذه الفترة. جرّب فترة أوسع.</p>' : ""}<div class="grid">${kpi("check", R.reinforcements.total, "تعزيزاً", 1)}${kpi("star", R.reinforcements.points, "نقطة ممنوحة", 3)}${kpi("inbox", R.incidents.total, "واقعة مرصودة", 2)}${kpi("trophy", R.achievements.total, "إنجازاً موثقاً", 4)}${kpi("help", R.support.opened, "حالة دعم مفتوحة", 0)}${kpi("check", R.support.closed, "حالة دعم مغلقة", 1)}</div>
       ${R.support.avg_improvement != null ? `<p class="sub">متوسط التحسن النهائي للحالات المغلقة: ${R.support.avg_improvement} من 5</p>` : ""}
       <div class="grid mt">${blk("التعزيز حسب النوع", R.reinforcements.by_type)}${blk("التعزيز حسب الصف", R.reinforcements.by_grade)}${blk("الوقائع حسب التصنيف", R.incidents.by_category)}${blk("الوقائع حسب الحالة", R.incidents.by_status)}${blk("الإنجازات حسب التصنيف", R.achievements.by_category)}${blk("الإنجازات حسب المستوى", lv(R.achievements.by_level))}${blk("حالات الدعم حسب النوع", R.support.by_type)}</div>`;
       $("#csv").disabled = $("#pr").disabled = false;
-    } catch (e) { $("#er").textContent = mapErr(e); } };
+    } catch (e) { R = null; $("#rep").innerHTML = ""; $("#csv").disabled = $("#pr").disabled = true; er.textContent = mapErr(e); } go.disabled = false; };
     $("#go").onclick = run;
+    const mark = (k) => $$("#rq button").forEach((b) => b.classList.toggle("on", b.dataset.q === k));
+    $$("#rq button").forEach((b) => (b.onclick = () => { $("#rf").value = RNG[b.dataset.q][1]; $("#rt").value = t0; mark(b.dataset.q); run(); }));
+    $("#rf").onchange = $("#rt").onchange = () => mark("");
     $("#pr").onclick = () => window.print();
     $("#csv").onclick = () => {
       const rows = [["القسم", "البند", "العدد"]];
       const add = (s, a) => a.forEach((r) => rows.push([s, r.name, r.n]));
+      rows.push(["الفترة", "من", R.from], ["الفترة", "إلى", R.to]);
       rows.push(["ملخص", "تعزيزات", R.reinforcements.total], ["ملخص", "نقاط", R.reinforcements.points], ["ملخص", "وقائع", R.incidents.total], ["ملخص", "إنجازات موثقة", R.achievements.total], ["ملخص", "حالات دعم مفتوحة", R.support.opened], ["ملخص", "حالات دعم مغلقة", R.support.closed]);
       add("تعزيز حسب النوع", R.reinforcements.by_type); add("تعزيز حسب الصف", R.reinforcements.by_grade); add("وقائع حسب التصنيف", R.incidents.by_category); add("وقائع حسب الحالة", R.incidents.by_status);
       add("إنجازات حسب التصنيف", R.achievements.by_category); add("إنجازات حسب المستوى", R.achievements.by_level.map((r) => ({ ...r, name: LV[r.name] || r.name }))); add("دعم حسب النوع", R.support.by_type);
       const csv = "﻿" + rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
-      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = `qiyami-report-${R.from}-${R.to}.csv`; a.click(); URL.revokeObjectURL(a.href);
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = `qiyami-report-${R.from}-${R.to}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     };
     await run();
   }, { role: "report" }),
@@ -475,10 +523,10 @@ Object.assign(PAGES, {
 });
 
 Object.assign(PAGES, {
-  points: () => boot("points.html", async (m) => {
+  points: () => boot("admin.html", async (m) => {
     const T = await types("qm_reinforcement_types"), st = { s: null };
     m.innerHTML = `<div class="card form"><label>المتعلم</label><div id="pk"></div></div><div id="pb" style="margin-top:16px"></div>
-      <div class="card mt"><h4 style="margin-top:0">نقاط أنواع التعزيز الافتراضية</h4><p class="sub">تظهر هذه القيم في «كيف تكسب النقاط؟» بالصفحة الرئيسية مرتبة من الأعلى. عدّل أو أضف أو احذف الأنواع من <a href="admin.html">الإدارة ← أنواع التعزيز</a>.</p>
+      <div class="card mt"><h4 style="margin-top:0">نقاط أنواع التعزيز الافتراضية</h4><p class="sub">تظهر هذه القيم في «كيف تكسب النقاط؟» بالصفحة الرئيسية مرتبة من الأعلى. عدّل أو أضف أو احذف الأنواع من <a href="admin.html?tab=types">الإدارة ← أنواع التعزيز</a>.</p>
       <table class="tbl"><thead><tr><th>النوع</th><th>النقاط الافتراضية</th></tr></thead><tbody>${[...T].sort((a, b) => b.default_points - a.default_points).map((t) => `<tr><td><b>${esc(t.name_ar)}</b></td><td>${pts(t.default_points)}</td></tr>`).join("")}</tbody></table></div>`;
     const paint = async () => {
       const box = $("#pb");
