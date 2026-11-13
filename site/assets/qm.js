@@ -32,7 +32,7 @@ const ERR = {
   date_future: "لا يمكن تسجيل واقعة بتاريخ مستقبلي.",
   already_void: "سبق إلغاء هذا التعزيز.",
   too_many: "العدد كبير. امنح 60 متعلماً كحد أقصى في المرة الواحدة.",
-  too_soon: "مُنح هذا الوسام للمتعلم قبل أقل من دقيقة. انتظر دقيقة ثم أعد المحاولة.",
+  month_dup: "نال المتعلم هذا الوسام هذا الشهر. يمكن منحه له مجدداً الشهر القادم.",
   subject_mismatch: "هذا الوسام خاص بمعلمي مادته. اختر من أوسمة تخصصك أو الأوسمة العامة.",
 };
 const mapErr = (e) => { const m = e?.message || String(e); return ERR[m] || (/permission denied|row-level security/i.test(m) ? ERR.forbidden : m); };
@@ -43,7 +43,7 @@ async function rpc(fn, args) {
 }
 
 // شريط تنبيه أصفر يظهر أعلى الصفحة: سبب عدم المنح لكل متعلم
-const skipWhy = (w, k) => ({ too_soon: "مُنح هذا الوسام له قبل أقل من دقيقة", duplicate: k === "badge" ? "يحمل هذا الوسام من قبل" : "مُنح السبب نفسه قبل قليل", student_not_enrolled: "غير مقيّد في العام الدراسي الحالي" }[w] || ERR[w] || w);
+const skipWhy = (w, k) => ({ month_dup: "نال هذا الوسام هذا الشهر، ويمكن منحه له مجدداً الشهر القادم", duplicate: k === "badge" ? "يحمل هذا الوسام من قبل" : "مُنح السبب نفسه قبل قليل", student_not_enrolled: "غير مقيّد في العام الدراسي الحالي" }[w] || ERR[w] || w);
 function notice(title, rows, tone) {
   let box = document.querySelector(".qm-notices");
   if (!box) { box = document.createElement("div"); box.className = "qm-notices"; document.body.appendChild(box); }

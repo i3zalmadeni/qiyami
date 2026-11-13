@@ -1,4 +1,4 @@
--- 1) يجوز منح الوسام نفسه للمتعلم نفسه أكثر من مرة، بشرط مرور دقيقة على آخر منح له (بدل منعه نهائياً).
+-- 1) يجوز منح الوسام نفسه للمتعلم نفسه مرة واحدة في كل شهر (بدل مرة واحدة طوال العام).
 -- 2) الأوسمة التعليمية لمعلم المادة فقط (مدير النظام مستثنى).
 drop index if exists public.qm_student_badge_uq;
 create index if not exists qm_student_badges_recent_idx on public.qm_student_badges (student_id, badge_id, created_at desc) where revoked_at is null;
@@ -30,8 +30,8 @@ begin
   end if;
   if not exists (select 1 from public.qm_enrollment(p_student)) then raise exception 'student_not_enrolled'; end if;
   perform pg_advisory_xact_lock(hashtextextended(p_student::text || p_badge::text, 0));
-  if exists (select 1 from public.qm_student_badges where student_id = p_student and badge_id = p_badge and revoked_at is null and created_at > now() - interval '1 minute') then
-    raise exception 'too_soon';
+  if exists (select 1 from public.qm_student_badges where student_id = p_student and badge_id = p_badge and revoked_at is null and created_at >= public.qm_month_start()) then
+    raise exception 'month_dup';
   end if;
   insert into public.qm_student_badges (student_id, badge_id, note, awarded_by) values (p_student, p_badge, nullif(btrim(p_note), ''), me) returning id into bid;
   if b.points > 0 then
@@ -57,7 +57,7 @@ begin
       else perform public.qm_award_badge(sid, p_ref, p_note); end if;
       ok := ok + 1;
     exception when others then
-      if sqlerrm in ('duplicate', 'too_soon', 'student_not_enrolled') then
+      if sqlerrm in ('duplicate', 'month_dup', 'student_not_enrolled') then
         skipped := skipped || jsonb_build_object('id', sid, 'why', sqlerrm, 'name', (select full_name from public.students where id = sid));
       else raise; end if;
     end;
