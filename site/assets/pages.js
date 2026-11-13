@@ -115,7 +115,9 @@ const PAGES = {
             const R = await rpc("qm_grant_bulk", { p_students: studs.map((s) => s.id), p_kind: k, p_ref: ref[k], p_points: k === "points" ? +$("#gp", md.el).value || 0 : 0, p_note: $("#gn", md.el)?.value || null });
             md.close();
             const what = k === "points" ? "النقاط" : "الوسام", sk = R.skipped || [];
-            if (R.ok) toast(`${k === "points" ? "مُنحت النقاط" : "مُنح الوسام"} لـ ${R.ok === 1 ? "متعلم واحد" : R.ok + " متعلماً"}`);
+            if (R.ok) { const skId = new Set(sk.map((x) => x.id)), got = studs.filter((s) => !skId.has(s.id)), bd = B.find((x) => x.id === ref.badge), ty = T.find((x) => x.id === ref.points), np = +$("#gp", md.el)?.value || 0;
+              const head = k === "badge" ? `تم منح وسام «${bd?.name_ar || ""}» بنجاح` : `تم منح ${np ? np + " نقطة" : "التعزيز"} (${ty?.name_ar || ""}) بنجاح`;
+              notice(head, got.slice(0, 60).map((s) => [s.name, k === "badge" ? `نال وسام «${bd?.name_ar || ""}»` : `نال ${np ? np + " نقطة" : "التعزيز"}`]), "ok"); }
             if (sk.length) notice(R.ok ? `لم يُمنح ${what} لـ ${sk.length === 1 ? "متعلم واحد" : sk.length + " متعلمين"}` : `لم يُمنح ${what}`, sk.map((x) => [x.name, skipWhy(x.why, k)]));
             st.sel.clear(); await Promise.all([loadRoster(), loadRec()]);
           } catch (e) { er.textContent = mapErr(e); notice(k === "points" ? "لم تُمنح النقاط" : "لم يُمنح الوسام", [[null, mapErr(e)]]); go.disabled = false; }

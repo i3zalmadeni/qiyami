@@ -493,7 +493,8 @@ main.hubmain{padding-top:18px}
 .bg-s{font-size:.86rem;color:var(--muted);margin:12px 12px 0;font-weight:700}
 
 /* شريط التنبيه الأصفر أعلى الصفحة */
-.qm-notice{position:fixed;inset-block-start:14px;inset-inline:0;margin:0 auto;width:min(620px,calc(100% - 24px));z-index:200;animation:qnin .35s cubic-bezier(.2,.8,.2,1)}
+.qm-notices{position:fixed;inset-block-start:14px;inset-inline:0;margin:0 auto;width:min(620px,calc(100% - 24px));z-index:200;display:grid;gap:10px;pointer-events:none}
+.qm-notice{pointer-events:auto;animation:qnin .35s cubic-bezier(.2,.8,.2,1)}
 .qm-notice.out{animation:qnout .3s ease forwards}
 .qn-in{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:14px 16px;border-radius:16px;background:#fff4c2;border:1.5px solid #f0c94a;color:#4a3800;box-shadow:0 14px 34px -12px rgba(120,90,0,.45)}
 .qn-in>.ico{width:22px;height:22px;color:#a87a00;margin-top:2px}
@@ -506,3 +507,7 @@ main.hubmain{padding-top:18px}
 @keyframes qnin{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:none}}
 @keyframes qnout{to{opacity:0;transform:translateY(-24px)}}
 @media (prefers-reduced-motion:reduce){.qm-notice,.qm-notice.out{animation:none}}
+.qm-notice.ok .qn-in{background:#dcf5e3;border-color:#5cc183;color:#0f4a26;box-shadow:0 14px 34px -12px rgba(20,110,60,.4)}
+.qm-notice.ok .qn-in>.ico{color:#1f8a4c}
+.qm-notice.ok .qn-in button{color:#1f6a3c}
+.qm-notice.ok .qn-in button:focus-visible{outline-color:#1f8a4c}

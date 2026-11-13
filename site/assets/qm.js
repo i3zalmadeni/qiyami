@@ -44,14 +44,16 @@ async function rpc(fn, args) {
 
 // شريط تنبيه أصفر يظهر أعلى الصفحة: سبب عدم المنح لكل متعلم
 const skipWhy = (w, k) => ({ too_soon: "مُنح هذا الوسام له قبل أقل من دقيقة", duplicate: k === "badge" ? "يحمل هذا الوسام من قبل" : "مُنح السبب نفسه قبل قليل", student_not_enrolled: "غير مقيّد في العام الدراسي الحالي" }[w] || ERR[w] || w);
-function notice(title, rows) {
-  document.querySelectorAll(".qm-notice").forEach((x) => x.remove());
-  const d = document.createElement("div"); d.className = "qm-notice"; d.setAttribute("role", "alert");
+function notice(title, rows, tone) {
+  let box = document.querySelector(".qm-notices");
+  if (!box) { box = document.createElement("div"); box.className = "qm-notices"; document.body.appendChild(box); }
+  box.querySelectorAll(".qm-notice").forEach((x) => { if (Date.now() - +x.dataset.t > 1500) x.remove(); });
+  const d = document.createElement("div"); d.className = "qm-notice" + (tone === "ok" ? " ok" : ""); d.setAttribute("role", tone === "ok" ? "status" : "alert"); d.dataset.t = Date.now();
   const L = (rows || []).slice(0, 8), more = (rows || []).length - L.length;
-  d.innerHTML = `<div class="qn-in">${ico("bell")}<div class="qn-t"><b>${esc(title)}</b>${L.length ? `<ul>${L.map(([n, w]) => `<li>${n ? `<b>${esc(n)}</b>: ` : ""}${esc(w)}</li>`).join("")}${more > 0 ? `<li>و${more} آخرون للسبب نفسه</li>` : ""}</ul>` : ""}</div><button type="button" aria-label="إغلاق التنبيه">${ico("x")}</button></div>`;
+  d.innerHTML = `<div class="qn-in">${ico(tone === "ok" ? "check" : "bell")}<div class="qn-t"><b>${esc(title)}</b>${L.length ? `<ul>${L.map(([n, w]) => `<li>${n ? `<b>${esc(n)}</b>: ` : ""}${esc(w)}</li>`).join("")}${more > 0 ? `<li>و${more} آخرون</li>` : ""}</ul>` : ""}</div><button type="button" aria-label="إغلاق التنبيه">${ico("x")}</button></div>`;
   const close = () => { d.classList.add("out"); setTimeout(() => d.remove(), 300); };
-  d.querySelector("button").onclick = close; document.body.appendChild(d);
-  let t = setTimeout(close, 9000); d.onmouseenter = () => clearTimeout(t); d.onmouseleave = () => (t = setTimeout(close, 4000));
+  d.querySelector("button").onclick = close; box.appendChild(d);
+  let tm = setTimeout(close, 9000); d.onmouseenter = () => clearTimeout(tm); d.onmouseleave = () => (tm = setTimeout(close, 4000));
 }
 function toast(msg, bad) { const d = document.createElement("div"); d.className = "toast" + (bad ? " bad" : ""); d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 3800); }
 function modal(html, wide) {
