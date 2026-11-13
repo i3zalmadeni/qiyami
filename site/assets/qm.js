@@ -64,6 +64,27 @@ const badgeUrl = (path) => (path ? APP_CONFIG.supabaseUrl + "/storage/v1/object/
 const KIND = { educational: "تعليمي", administrative: "إداري", general: "عام" };
 const DOMAIN = { academic: "جانب أكاديمي", behavior: "جانب سلوكي", participation: "المشاركة", leadership: "القيادة والمبادرة", general: "عام" };
 const medal = (b, cls) => `<span class="mdl ${cls || ""}" data-k="${esc(b.kind || "general")}">${b.image ? `<img src="${esc(badgeUrl(b.image))}" alt="" loading="lazy">` : ico(b.icon in ICONS ? b.icon : "trophy")}</span>`;
+// ===== تصنيف الأوسمة في نافذة المنح: أوسمة تخصص المعلم أولاً، ثم بقية المواد، ثم الأوسمة العامة بمجالاتها =====
+const SUBJECTS = { "رياضيات": "الرياضيات", "لغة عربية": "لغتي الخالدة", "لغة إنجليزية": "اللغة الإنجليزية", "علوم": "العلوم", "تربية إسلامية": "الدراسات الإسلامية", "دراسات إسلامية": "الدراسات الإسلامية", "دراسات اجتماعية": "الدراسات الاجتماعية", "اجتماعيات": "الدراسات الاجتماعية", "حاسب آلي": "المهارات الرقمية", "حاسب": "المهارات الرقمية" };
+const BADGE_AREAS = [
+  ["discipline", "أوسمة الانضباط والسلوك", ["الانضباط", "السلوك"], "check"],
+  ["lead", "أوسمة القيادة والمشاركة", ["القيادة", "المبادرة", "التطوع", "التعاون", "التواصل"], "users"],
+  ["skills", "أوسمة المهارات والتفكير", ["الإبداع", "البحث", "التفكير", "التحليل", "المهارات العددية", "القراءة", "التعلم الإلكتروني", "التحول الرقمي"], "gem"],
+];
+function badgeGroups(B, specialty) {
+  const sp = (specialty || "").trim(), mySub = SUBJECTS[sp] || Object.entries(SUBJECTS).find(([k]) => sp && sp.includes(k))?.[1] || "";
+  const byName = (a, b) => a.name_ar.localeCompare(b.name_ar, "ar"), out = [];
+  const edu = B.filter((b) => b.kind === "educational"), mine = edu.filter((b) => mySub && b.category === mySub).sort(byName);
+  if (mine.length) out.push({ title: "أوسمة تخصصك: " + mySub, items: mine, open: true, mine: true, icon: "star" });
+  const other = edu.filter((b) => !mine.includes(b)), subs = {};
+  other.forEach((b) => (subs[b.category || "مواد أخرى"] ||= []).push(b));
+  if (other.length) out.push({ title: mine.length ? "أوسمة المواد الأخرى" : "الأوسمة التعليمية", items: other, icon: "cap", subs: Object.keys(subs).sort((a, b) => a.localeCompare(b, "ar")).map((k) => [k, subs[k].sort(byName)]) });
+  const gen = B.filter((b) => b.kind !== "educational" && b.kind !== "administrative"), used = new Set();
+  BADGE_AREAS.forEach(([, t, cats, icon]) => { const L = gen.filter((b) => cats.includes(b.category)).sort(byName); L.forEach((b) => used.add(b)); if (L.length) out.push({ title: t, items: L, icon }); });
+  const rest = gen.filter((b) => !used.has(b)).sort(byName); if (rest.length) out.push({ title: "أوسمة عامة", items: rest, icon: "trophy" });
+  const adm = B.filter((b) => b.kind === "administrative").sort(byName); if (adm.length) out.push({ title: "أوسمة إدارية", items: adm, icon: "building" });
+  return out;
+}
 const pts = (n) => `<span class="pts ${n < 0 ? "neg" : ""}"><bdi>${n > 0 ? "+" : ""}${n}</bdi></span>`;
 
 // ===== اختيار المتعلم: بحث سريع في طلاب النواة (لا نسخ لبياناتهم) =====

@@ -474,3 +474,20 @@ main.hubmain{padding-top:18px}
 .fd{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}.fd:last-child{border-bottom:0;padding-bottom:0}
 .fd-ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--brandsoft);color:var(--brand2);flex:none}.fd-ic.b{background:var(--acc2soft);color:var(--acc2ink)}
 .fd-ic .ico{width:17px;height:17px}.fd small{display:block;color:var(--muted)}.fd>div{min-width:0}
+
+/* مجموعات الأوسمة القابلة للفتح والإغلاق في نافذة المنح */
+.bg-g{border:1px solid var(--line);border-radius:16px;margin:8px 0;background:var(--surface);overflow:hidden}
+.bg-g>summary{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;font-weight:800;color:var(--ink);list-style:none;user-select:none}
+.bg-g>summary::-webkit-details-marker{display:none}
+.bg-g>summary::after{content:"";margin-inline-start:auto;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-3px) rotate(45deg);transition:transform .2s}
+.bg-g[open]>summary::after{transform:translateY(2px) rotate(-135deg)}
+.bg-g>summary .ico{width:18px;height:18px;color:var(--brand2)}
+.bg-g>summary i{font-style:normal;font-size:.78rem;font-weight:700;padding:0 9px;border-radius:99px;background:var(--soft);color:var(--brand2)}
+.bg-g>summary:focus-visible{outline:3px solid var(--brand);outline-offset:-3px}
+.bg-g[open]>summary{border-bottom:1px solid var(--line)}
+.bg-g>.gr-opts,.bg-g>.bg-s{margin-inline:12px}
+.bg-g>.gr-opts:last-child{margin-bottom:12px}
+.bg-g.mine{border-color:#e2c46b}
+.bg-g.mine>summary{background:color-mix(in srgb,#f0b34a 14%,var(--surface))}
+.bg-g.mine>summary .ico{color:#a97b1f}
+.bg-s{font-size:.86rem;color:var(--muted);margin:12px 12px 0;font-weight:700}
