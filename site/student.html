@@ -12,6 +12,7 @@ pubInit("leaderboard.html");
   const msg = (t, s) => (root.innerHTML = `<main class="hb-wrap" style="padding:50px 16px"><div class="hb-panel"><p class="hb-empty"><b>${t}</b><br>${s}</p><p style="text-align:center;margin:0 0 24px"><a class="btn" href="leaderboard.html#dirsec">ملفات الطلاب</a></p></div></main>`);
   if (!id) return msg("لم يُحدَّد متعلم", "افتح الملف من صفحة ملفات الطلاب.");
   let s; try { s = await rpc("qm_pub_student", { p_student: id }); } catch (e) { return msg("تعذر فتح الملف", "قد يكون الرابط غير صحيح أو المتعلم غير مقيّد هذا العام."); }
+  const LV = await loadLevels(), lv = levelOf(LV, s.balance);
   document.title = s.name + " – قيمي";
   const has = s.balance > 0, mName = (m) => new Date(m + "-15T12:00:00Z").toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", year: "numeric", timeZone: "UTC" });
   const nowM = todayISO().slice(0, 7);
@@ -20,6 +21,7 @@ pubInit("leaderboard.html");
   root.innerHTML = `<section class="hero3 slim hb-hero"><div class="hb-id"><span class="hb-seal" aria-hidden="true">${esc(initials(s.name))}</span><div><span class="hb-kick">${ico("medal")}ملف المتعلم</span><h1>${esc(s.name)}</h1><p>المرحلة المتوسطة، ${klass(s)}</p></div></div>
       <div class="hb-bal"><div class="hb-b"><small>الرصيد الشهري</small><b>${s.month}<em>نقطة</em></b><span>${esc(mName(nowM))}</span></div><div class="hb-b cum"><small>الرصيد التراكمي</small><b>${s.balance}<em>نقطة</em></b><span>مجموع الأشهر منذ بداية العام</span></div></div></section>
     <main class="hb-wrap" style="padding-bottom:40px">
+      ${lv.cur ? `<section class="hb-lv"><div class="hb-lvh"><span class="hb-lvn">${ico("crown")}مستوى ${esc(lv.cur.name)}</span>${lv.next ? `<span class="hb-lvt">باقي <bdi>${lv.next.min - s.balance}</bdi> نقطة للوصول إلى مستوى ${esc(lv.next.name)}</span>` : `<span class="hb-lvt">وصل إلى أعلى مستوى</span>`}</div>${lv.next ? `<div class="hb-lvb" role="progressbar" aria-valuemin="${lv.cur.min}" aria-valuemax="${lv.next.min}" aria-valuenow="${s.balance}"><i style="--w:${Math.round(((s.balance - lv.cur.min) / (lv.next.min - lv.cur.min)) * 100)}%"></i></div>` : ""}</section>` : ""}
       <div class="hb-ranks">${rk("ترتيبه في المدرسة", s.rank, s.rank_total)}${rk("ترتيبه في الصف", s.rank_grade, s.grade_total)}${rk("ترتيبه في الفصل", s.rank_section, s.section_total)}</div>
       <section class="hb-sec"><div class="hb-h"><div><h2>الأوسمة</h2><p>${s.badges.length ? "كل وسام مع من منحه وتاريخه." : "لم يحصل على أوسمة بعد."}</p></div></div>${grp("educational", "أوسمة تعليمية")}${grp("administrative", "أوسمة إدارية")}${grp("general", "أوسمة عامة")}</section>
       <section class="hb-sec"><div class="hb-h"><div><h2>النقاط</h2><p>${s.points.length ? "كل مرة مُنح فيها نقاطاً، ومن منحها." : "لم يحصل على نقاط بعد."}</p></div></div>

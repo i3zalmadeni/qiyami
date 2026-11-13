@@ -44,7 +44,7 @@ pubInit("leaderboard.html");
   const droot = document.getElementById("dir"), $i = (id) => document.getElementById(id);
   const F = await rpc("qm_pub_filters").catch(() => null); if (!F) return;
   
-  const st = { grade: "", section: "", q: "", page: 0 }, N = 48;
+  const st = { grade: "", section: "", q: "", page: 0 }, N = 48, LV = await loadLevels();
   droot.innerHTML = `<div class="hb-panel hb-filters"><div><label for="dsg">المرحلة</label><select id="dsg"><option>المتوسطة</option></select></div><div><label for="dgr">الصف</label><select id="dgr"><option value="">كل الصفوف</option>${F.grades.map((g) => `<option value="${esc(g.code)}">${esc(g.name)}</option>`).join("")}</select></div><div><label for="dse">الفصل</label><select id="dse"></select></div><div><label for="dq">بحث بالاسم</label><input id="dq" type="search" placeholder="اكتب جزءاً من الاسم"></div></div><div id="drs"></div>`;
   const secs = () => { $i("dse").innerHTML = `<option value="">كل الفصول</option>` + F.sections.filter((s) => st.grade && s.grade === st.grade).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join(""); $i("dse").value = st.section; $i("dse").disabled = !st.grade; };
   const load = async () => {
@@ -53,7 +53,7 @@ pubInit("leaderboard.html");
       const D = await rpc("qm_pub_directory", { p_grade: st.grade || null, p_section: st.section || null, p_q: st.q || null, p_limit: N, p_offset: st.page * N });
       if (!D.rows.length) { out.innerHTML = `<div class="hb-panel" style="margin-top:22px"><p class="hb-empty">لا متعلمين مطابقين. جرّب اسماً آخر أو صفاً آخر.</p></div>`; return; }
       const pages = Math.ceil(D.total / N);
-      out.innerHTML = `<p class="hb-note">${D.total} متعلماً</p><div class="hb-dir">${D.rows.map((x) => `<a class="hb-st" href="student.html?id=${x.id}"><span class="hb-ini" aria-hidden="true">${esc(initials(x.name))}</span><span><b>${esc(x.name)}</b><small>${klass(x)}</small><span class="tags"><span>${ico("star")}${x.balance} نقطة</span>${x.badges ? `<span class="g">${ico("medal")}${x.badges} ${x.badges > 10 || x.badges < 3 ? "وسام" : "أوسمة"}</span>` : ""}</span></span></a>`).join("")}</div>
+      out.innerHTML = `<p class="hb-note">${D.total} متعلماً</p><div class="hb-dir">${D.rows.map((x) => `<a class="hb-st" href="student.html?id=${x.id}"><span class="hb-ini" aria-hidden="true">${esc(initials(x.name))}</span><span><b>${esc(x.name)}</b><small>${klass(x)}</small><span class="tags"><span>${ico("star")}${x.balance} نقطة</span>${levelOf(LV, x.balance).cur ? `<span class="lv">${esc(levelOf(LV, x.balance).cur.name)}</span>` : ""}${x.badges ? `<span class="g">${ico("medal")}${x.badges} ${x.badges > 10 || x.badges < 3 ? "وسام" : "أوسمة"}</span>` : ""}</span></span></a>`).join("")}</div>
         ${pages > 1 ? `<div class="hb-pager"><button class="btn sec" id="dpv" ${st.page ? "" : "disabled"}>السابق</button><span class="sub">صفحة ${st.page + 1} من ${pages}</span><button class="btn sec" id="dnx" ${st.page + 1 < pages ? "" : "disabled"}>التالي</button></div>` : ""}`;
       const pv = $i("dpv"), nx = $i("dnx");
       if (pv) pv.onclick = () => { st.page--; load(); document.getElementById("dir").scrollIntoView(); };

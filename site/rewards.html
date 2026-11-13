@@ -11,6 +11,7 @@
 <li>الوقائع السلوكية المرصودة لا تُخصم منها نقاط. وإذا أُلغي تعزيز أو صُحّح رصيد فذلك بقرار موثق من الإدارة، ويبقى أثره ظاهراً في السجل.</li>
 <li>ترتيبك في المدرسة والصف والفصل يعتمد على الرصيد، وعند تساوي النقاط تتشارك المرتبة نفسها.</li></ul></div></section>
 <section class="hb-sec" id="pts"><div class="hb-h"><div><h2>نقاط التعزيز</h2><p>مقدار النقاط لكل جانب، وكيف تستحقها.</p></div></div><div id="tp"><p class="hb-empty">جارٍ التحميل…</p></div></section>
+<section class="hb-sec" id="lvs" hidden><div class="hb-h"><div><h2>مستويات التميز</h2><p>ينتقل مستواك تلقائياً كلما زاد رصيدك التراكمي.</p></div></div><div class="hb-lvl" id="lvl"></div></section>
 <section class="hb-sec" id="bdg"><div class="hb-h"><div><h2>الأوسمة</h2><p>كل وسام بصورته ونقاطه وطريقة استحقاقه، مقسمة حسب نوعها.</p></div></div><div id="bd"><p class="hb-empty">جارٍ التحميل…</p></div></section>
 <p class="hb-note">قد تتغير النقاط والأوسمة بقرار الإدارة، وتعرض هذه الصفحة آخر ما اعتُمد.</p></main>
 <div id="ftr"></div>
@@ -20,6 +21,7 @@
 pubInit("rewards.html");
 (async () => {
   let R; try { R = await rpc("qm_pub_rewards"); } catch (e) { for (const id of ["tp", "bd"]) document.getElementById(id).innerHTML = `<p class="hb-empty">تعذر التحميل. حدّث الصفحة بعد قليل.</p>`; return; }
+  loadLevels().then((L) => { if (!L.length) return; document.getElementById("lvs").hidden = false; document.getElementById("lvl").innerHTML = L.map((l, i) => `<div class="hb-lc"><span class="n">${i + 1}</span><b>${esc(l.name)}</b><small>${i === 0 && !l.min ? "منذ البداية" : "من <bdi>" + l.min + "</bdi> نقطة"}</small></div>`).join(""); });
   const P = (n) => (n ? `<bdi>+${n}</bdi> نقطة` : "بلا نقاط");
   document.getElementById("tp").innerHTML = R.types.length ? `<div class="hb-panel" style="overflow:auto"><table class="hb-tbl"><thead><tr><th>الجانب</th><th>النقاط</th><th>طريقة الاستحقاق</th></tr></thead><tbody>${R.types.map((t) => `<tr><td><b>${esc(t.name)}</b><br><small>${esc(DOMAIN[t.domain] || "")}</small></td><td class="p">${P(t.points)}</td><td>${t.criteria ? esc(t.criteria) : '<small>يقدّره المعلم بحسب الموقف.</small>'}</td></tr>`).join("")}</tbody></table></div>` : `<p class="hb-empty">لم تُحدَّد جوانب التعزيز بعد.</p>`;
   const order = [["educational", "أوسمة تعليمية", "تُمنح على التميز في التعلم والتحصيل."], ["administrative", "أوسمة إدارية", "تُمنح من الإدارة المدرسية."], ["general", "أوسمة عامة", "تُمنح على السلوك والمبادرة والعطاء."]];

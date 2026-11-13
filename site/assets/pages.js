@@ -261,8 +261,24 @@ async function badgeAdmin(root) {
   };
   await draw();
 }
+// مستويات الطلاب: الاسم وحد النقاط لكل مستوى، يضيفها مدير النواة ويعدلها ويحذفها
+async function levelsAdmin(root) {
+  const draw = async () => {
+    const { data: rows, error } = await sb.from("qm_levels").select("*").order("min_points");
+    if (error) { root.innerHTML = `<p class="err">${esc(mapErr(error))}</p>`; return; }
+    root.innerHTML = `<p class="sub">يُحسب مستوى الطالب من رصيده التراكمي: يدخل المستوى عند بلوغ حد النقاط. يظهر المستوى في ملف الطالب وقائمة الطلاب وصفحة النقاط والأوسمة.</p>
+      <div style="overflow:auto"><table class="tbl"><thead><tr><th>اسم المستوى</th><th>يبدأ من (نقطة)</th><th>فعّال</th><th></th></tr></thead><tbody>${rows.map((r) => `<tr data-id="${r.id}"><td><input data-k="name_ar" maxlength="40" value="${esc(r.name_ar)}"></td><td><input data-k="min_points" type="number" min="0" max="100000" value="${r.min_points}"></td><td><label class="tgl"><input type="checkbox" data-k="is_active" ${r.is_active ? "checked" : ""} aria-label="فعّال"><span></span></label></td><td><button class="btn sm sec" data-d="${r.id}" type="button">حذف</button></td></tr>`).join("")}</tbody></table></div>
+      <form class="card form mt" id="lf"><h4 style="margin:0">إضافة مستوى</h4><div class="two"><div><label for="l_n">اسم المستوى</label><input id="l_n" required maxlength="40"></div><div><label for="l_p">يبدأ من (نقطة)</label><input id="l_p" type="number" min="0" max="100000" required></div></div><p class="err" id="l_e" role="alert"></p><div class="acts"><button class="btn">إضافة</button></div></form>`;
+    $$("tr[data-id] [data-k]", root).forEach((el) => (el.onchange = async () => { const k = el.dataset.k, v = el.type === "checkbox" ? el.checked : el.type === "number" ? +el.value : el.value.trim();
+      if (k === "name_ar" && !v) { toast("اسم المستوى مطلوب", true); draw(); return; }
+      const { error } = await sb.from("qm_levels").update({ [k]: v }).eq("id", el.closest("tr").dataset.id); if (error) { toast(error.code === "23505" ? "يوجد مستوى آخر بالحد نفسه" : mapErr(error), true); draw(); } else { toast("تم الحفظ"); if (k === "min_points") draw(); } }));
+    $$("[data-d]", root).forEach((b) => (b.onclick = async () => { if (!confirm("حذف هذا المستوى؟ يُعاد احتساب مستوى الطلاب تلقائياً.")) return; const { error } = await sb.from("qm_levels").delete().eq("id", b.dataset.d); toast(error ? mapErr(error) : "تم الحذف", !!error); draw(); }));
+    $("#lf", root).onsubmit = async (e) => { e.preventDefault(); const { error } = await sb.from("qm_levels").insert({ name_ar: $("#l_n", root).value.trim(), min_points: +$("#l_p", root).value }); if (error) { $("#l_e", root).textContent = error.code === "23505" ? "يوجد مستوى بالحد نفسه من النقاط." : mapErr(error); return; } toast("تمت الإضافة"); draw(); };
+  };
+  await draw();
+}
 PAGES.admin = () => boot("admin.html", async (m, c) => {
-  const TABS = [["roles", "الأدوار"], ["types", "أنواع التعزيز"], ["badges", "الأوسمة"], ["cats", "تصنيفات السلوك"], ["stat", "حالات الواقعة"], ["set", "الإعدادات العامة"], ["audit", "سجل العمليات"]];
+  const TABS = [["roles", "الأدوار"], ["types", "أنواع التعزيز"], ["badges", "الأوسمة"], ["levels", "المستويات"], ["cats", "تصنيفات السلوك"], ["stat", "حالات الواقعة"], ["set", "الإعدادات العامة"], ["audit", "سجل العمليات"]];
   let cur = new URLSearchParams(location.search).get("t") || "roles";
   m.innerHTML = `<div class="tabs" id="tb">${TABS.map(([k, l]) => `<button data-t="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join("")}</div><div id="bd"></div>`;
   const body = $("#bd"), kinds = [["positive", "إيجابي"], ["negative", "سلبي"]];
@@ -274,6 +290,7 @@ PAGES.admin = () => boot("admin.html", async (m, c) => {
         $$("[data-s]", body).forEach((el) => (el.onchange = async () => { try { await rpc("qm_set_role", { p_staff: el.dataset.s, p_role: el.dataset.r, p_on: el.checked }); toast("تم الحفظ"); } catch (e) { toast(mapErr(e), true); el.checked = !el.checked; } }));
       } else if (cur === "types") await crud(body, "qm_reinforcement_types", [{ k: "name_ar", l: "الاسم" }, { k: "domain", l: "المجال", t: "select", o: [["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"], ["general", "عام"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "criteria", l: "طريقة الاستحقاق (تظهر للطلاب)" }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "الاسم", req: 1 }, { k: "domain", l: "المجال", t: "select", o: [["general", "عام"], ["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "criteria", l: "طريقة الاستحقاق (تظهر للطلاب)" }]);
       else if (cur === "badges") await badgeAdmin(body);
+      else if (cur === "levels") await levelsAdmin(body);
       else if (cur === "cats") await crud(body, "qm_behavior_categories", [{ k: "name_ar", l: "التصنيف" }, { k: "kind", l: "النوع", t: "select", o: kinds }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "التصنيف", req: 1 }, { k: "kind", l: "النوع", t: "select", o: kinds }]);
       else if (cur === "stat") body.innerHTML = '<p class="sub">حالات الواقعة المسموح بها تحدد مسار الإجراءات في النظام. يمكن تعديل الاسم واللون والترتيب. الرموز البرمجية (code) ثابتة، وتغيير مسار الانتقال بين الحالات يحتاج تعديلاً برمجياً معتمداً.</p><div id="sc"></div>', await crud($("#sc", body), "qm_incident_statuses", [{ k: "code", l: "الرمز", ro: 1 }, { k: "name_ar", l: "الاسم" }, { k: "tone", l: "اللون", t: "select", o: [["ok", "أخضر: مكتمل"], ["info", "أزرق: قيد المعالجة"], ["warn", "برتقالي: يحتاج إجراء"], ["bad", "أحمر: تنبيه"], ["mute", "رمادي: غير نشط"]] }, { k: "sort_order", l: "الترتيب", t: "number" }], [{ k: "code", l: "الرمز (حروف إنجليزية)", req: 1 }, { k: "name_ar", l: "الاسم", req: 1 }]);
       else if (cur === "set") {

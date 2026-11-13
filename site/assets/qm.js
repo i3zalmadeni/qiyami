@@ -264,3 +264,7 @@ async function adjustPoints(studentId, done) {
   $("#no", md.el).onclick = md.close;
   $("#ok", md.el).onclick = async () => { try { await rpc("qm_adjust_points", { p_student: studentId, p_points: +$("#pp", md.el).value, p_reason: $("#pr", md.el).value }); md.close(); toast("سُجّل التصحيح"); done && done(); } catch (e) { $("#pe", md.el).textContent = mapErr(e); } };
 }
+
+// مستويات الطلاب: تُحسب من الرصيد التراكمي وحدود المستويات المحفوظة في القاعدة
+const loadLevels = async () => { try { return (await rpc("qm_pub_levels")) || []; } catch (e) { return []; } };
+const levelOf = (L, bal) => { const a = (L || []).slice().sort((x, y) => x.min - y.min); let cur = null, next = null; for (const l of a) { if (bal >= l.min) cur = l; else { next = l; break; } } return { cur, next }; };
