@@ -53,6 +53,7 @@ Object.assign(ICONS, {
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
   crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 10H5z"/><path d="M5 21h14"/>',
   medal: '<circle cx="12" cy="15" r="5.5"/><path d="M8.5 10.5L5 3h5l2 4 2-4h5l-3.500 7.500"/><path d="M12 13l.9 1.800 2 .3-1.450 1.400.35 2L12 17.550l-1.800.950.35-2L9.100 15.100l2-.3z"/>',
+  flag: '<path d="M5 21V4M5 4h12l-2.500 4 2.500 4H5"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2.500"/><circle cx="9" cy="10" r="1.800"/><path d="M4 18l5.500-5 4 3.500 2.500-2 4 3.500"/>',
 });
 // ===== عناصر مشتركة للوحة الشرف: الأسماء والأوسمة =====
@@ -192,13 +193,9 @@ function bindIncidents(root, reload) {
 // r: all | agent | counselor | admin
 const NAV = [
   ["dashboard.html", "الرئيسية", "home", "ما يخصك الآن ومؤشرات الرعاية", "all"],
-  ["reinforce.html", "منح النقاط والأوسمة", "plus", "اختر الصف والفصل ثم امنح فردياً أو جماعياً", "all"],
-  ["behavior.html", "تسجيل سلوك", "list", "موقف إيجابي أو واقعة تُحال إلى وكيل شؤون الطلاب", "all"],
-  ["incidents.html", "وقائعي", "inbox", "الوقائع التي رفعتَها وحالتها", "all"],
-  ["reinforcements.html", "سجل التعزيز", "calendar", "سجل التعزيزات ودفتر النقاط", "all"],
-  ["balances.html", "الأرصدة والتميز", "trophy", "أرصدة المتعلمين ولوحة التميز", "all"],
+  ["positive.html", "السلوك الإيجابي", "medal", "منح النقاط والأوسمة وسجل التعزيز والأرصدة والإنجازات", "all"],
+  ["negative.html", "السلوك السلبي", "flag", "تسجيل الوقائع السلوكية ومتابعة ما رفعتَه", "all"],
   ["students.html", "دليل المتعلمين", "users", "بحث سريع وبطاقة المتعلم", "all"],
-  ["achievements.html", "الإنجاز والمواهب", "trophy", "إنجازات المتعلمين ومواهبهم ومعرض التميز", "all"],
   ["support.html", "المتابعة والدعم", "help", "حالات الدعم التربوي وخطط المتابعة", "support"],
   ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
   ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
@@ -206,7 +203,29 @@ const NAV = [
   ["points.html", "إدارة النقاط", "star", "إضافة النقاط وتعديلها وحذفها", "admin"],
   ["admin.html", "الإدارة", "gear", "الأدوار والإعدادات وسجل العمليات", "admin"],
 ];
+// الصفحات المجمّعة: صفحة واحدة في القائمة تندرج تحتها صفحات فرعية (?tab=)
+const HUBS = {
+  "positive.html": [
+    ["reinforce", "منح النقاط والأوسمة", "plus", "اختر الصف والفصل ثم امنح فردياً أو جماعياً"],
+    ["reinforcements", "سجل التعزيز", "calendar", "سجل التعزيزات ودفتر النقاط"],
+    ["balances", "الأرصدة والتميز", "trophy", "أرصدة المتعلمين ولوحة التميز"],
+    ["achievements", "الإنجاز والمواهب", "star", "إنجازات المتعلمين ومواهبهم ومعرض التميز"],
+    ["note", "موقف إيجابي", "check", "توثيق موقف إيجابي للمتعلم دون نقاط"],
+  ],
+  "negative.html": [
+    ["behavior", "تسجيل السلوك", "plus", "واقعة سلوكية تُرفع إلى وكيل شؤون الطلاب"],
+    ["incidents", "وقائعي", "inbox", "الوقائع التي رفعتَها وحالتها"],
+  ],
+};
+function openHub(page) {
+  const tabs = HUBS[page]; let tab = new URLSearchParams(location.search).get("tab");
+  if (!tabs.some((t) => t[0] === tab)) tab = tabs[0][0];
+  window.__hub = { page, tab, tabs }; PAGES[tab]();
+}
 async function boot(page, render, o = {}) {
+  const hub = window.__hub;
+  if (hub && hub.go) return hub.go(render);
+  if (hub) page = hub.page;
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.replace("login.html?next=" + encodeURIComponent(location.pathname.split("/").pop() + location.search)); return; }
   const shell = document.getElementById("shell");
@@ -248,9 +267,22 @@ async function boot(page, render, o = {}) {
     paint();
   })();
   const main = $("#main");
-  try { await render(main, ctx); } catch (e) { console.error(e); main.innerHTML = `<p class="err">تعذر تحميل الصفحة: ${esc(mapErr(e))}</p>`; }
+  const draw = async (fn) => { try { await fn(main, ctx); } catch (e) { console.error(e); main.innerHTML = `<p class="err">تعذر تحميل الصفحة: ${esc(mapErr(e))}</p>`; } };
+  if (hub) {
+    $(".pagebar").insertAdjacentHTML("beforeend", `<div class="wrap"><div class="subnav" role="navigation" aria-label="الصفحات الفرعية">${hub.tabs.map(([k, n, i]) => `<a href="${hub.page}?tab=${k}" data-tab="${k}">${ico(i)}${n}</a>`).join("")}</div></div>`);
+    main.classList.add("hubmain");
+    const links = $$(".subnav a");
+    const mark = () => { const t = hub.tabs.find((x) => x[0] === hub.tab);
+      links.forEach((a) => { const on = a.dataset.tab === hub.tab; a.classList.toggle("on", on); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); if (on) a.scrollIntoView({ block: "nearest", inline: "nearest" }); });
+      $(".pb-d").textContent = t[3]; document.title = t[1] + " – " + cur[1] + " – قيمي"; };
+    hub.go = async (fn) => { hub.busy = true; main.innerHTML = ""; mark(); await draw(fn); hub.busy = false; };
+    links.forEach((a) => (a.onclick = (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); if (hub.busy || a.dataset.tab === hub.tab) return;
+      hub.tab = a.dataset.tab; history.pushState(null, "", hub.page + "?tab=" + hub.tab); PAGES[hub.tab](); }));
+    addEventListener("popstate", () => location.reload());
+    await hub.go(render);
+  } else await draw(render);
   // فتح واقعة مباشرة من رابط إشعار (?i=)
-  const q = new URLSearchParams(location.search).get("i"); if (q && !/^(achievements|support)\.html$/.test(page)) openIncident(q);
+  const q = new URLSearchParams(location.search).get("i"); if (q && !/^(positive|support)\.html$/.test(page)) openIncident(q);
 }
 
 async function awardBadge(studentId, done) {

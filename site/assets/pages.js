@@ -19,7 +19,7 @@ const PAGES = {
     const mk = [kpi("plus", d.my_reinforcements, "تعزيزاً سجّلتُه", 1), kpi("inbox", d.my_incidents, "واقعة رفعتُها", 0), kpi("help", d.my_needs_action, "تنتظر استكمالك", 2)];
     const wk = sens ? [kpi("inbox", d.incidents_new, "وقائع جديدة مرصودة", 2), kpi("clock", d.incidents_with_agent, "لدى وكيل شؤون الطلاب", 0), kpi("users", d.incidents_referred, "محالة للموجه الطلابي", 3), ...(d.incidents_overdue !== null ? [kpi("hourglass", d.incidents_overdue, "تأخرت أكثر من 3 أيام", 4)] : [])] : [];
     m.innerHTML = `<section class="dash-hero"><div><h2>مرحباً ${esc(c.who.name)}</h2><p>${esc(fmtDay(todayISO()))} · ${esc(fmtHijri(todayISO()))}</p></div><span class="yr"><i></i>${esc(c.role)}</span></section>
-    ${d.my_needs_action ? `<div class="alert mt"><b>${d.my_needs_action} واقعة تنتظر استكمالك للمعلومات.</b> <a href="incidents.html">افتح وقائعي</a></div>` : ""}
+    ${d.my_needs_action ? `<div class="alert mt"><b>${d.my_needs_action} واقعة تنتظر استكمالك للمعلومات.</b> <a href="negative.html?tab=incidents">افتح وقائعي</a></div>` : ""}
     <h3 class="sec">مهامي</h3><div class="grid">${mk.join("")}</div>
     ${sens ? `<h3 class="sec">الوقائع السلوكية</h3><div class="grid">${wk.join("")}</div>` : ""}
     <h3 class="sec">المدرسة</h3><div class="grid">${kp.join("")}</div>
@@ -29,12 +29,12 @@ const PAGES = {
       <div class="card"><h4 style="margin-top:0">حسب الصف</h4>${rankRows(d.by_grade, "grade", "n")}</div></div>
     <h3 class="sec">أحدث العمليات</h3>${d.recent.length ? d.recent.map((r) => `<div class="item"><div class="row2"><div><b>${esc(r.student)}</b> · ${esc(r.type)}</div><span>${r.points ? pts(r.points) : ""} <small>${esc(ago(r.created_at))}</small></span></div></div>`).join("") : empty("check", "لا تعزيزات بعد", "ابدأ بتسجيل أول تعزيز.")}
     <h3 class="sec">آخر وقائعي</h3><div id="mi">${mine.length ? mine.map(incidentCard).join("") : '<p class="sub">لم ترفع وقائع.</p>'}</div>
-    <div class="acts mt"><a class="btn" href="reinforce.html">${ico("plus")}تسجيل تعزيز</a><a class="btn sec" href="behavior.html">تسجيل سلوك</a></div>
+    <div class="acts mt"><a class="btn" href="positive.html">${ico("plus")}منح النقاط والأوسمة</a><a class="btn sec" href="negative.html">تسجيل سلوك سلبي</a></div>
     <p class="sub">المؤشرات من قاعدة البيانات مباشرة، وتغطي ${esc(fmtShort(d.since))} إلى اليوم في المخططات.</p>`;
     bindIncidents($("#mi"), () => location.reload());
   }),
 
-  reinforce: () => boot("reinforce.html", async (m, c) => {
+  reinforce: () => boot("positive.html", async (m, c) => {
     const [T, F, BQ, SQ] = await Promise.all([types("qm_reinforcement_types"), rpc("qm_pub_filters"),
       sb.from("qm_badges").select("id,name_ar,criteria,points,kind,icon,image_path").eq("is_active", true).order("sort_order"), sb.from("qm_settings").select("max_points_per_award").single()]);
     const B = (BQ.data || []).map((b) => ({ ...b, image: b.image_path })), maxP = SQ.data?.max_points_per_award || 50;
@@ -109,14 +109,20 @@ const PAGES = {
     await loadRec();
   }),
 
-  behavior: () => boot("behavior.html", async (m, c) => {
-    const [P, Ng] = await Promise.all([types("qm_behavior_categories", (x) => x.kind === "positive"), types("qm_behavior_categories", (x) => x.kind === "negative")]);
-    const sp = { s: null }, sn = { s: null };
-    m.innerHTML = `<div class="tabs" role="tablist"><button class="on" data-t="p" role="tab">موقف إيجابي</button><button data-t="n" role="tab">واقعة سلبية (إحالة للوكيل)</button></div>
-    <form class="card form" id="fp"><div><label>المتعلم</label><div id="pkp"></div></div><div><label for="cp">التصنيف</label><select id="cp">${opt(P)}</select></div>
+  note: () => boot("positive.html", async (m) => {
+    const P = await types("qm_behavior_categories", (x) => x.kind === "positive"), sp = { s: null };
+    m.innerHTML = `<form class="card form" id="fp"><div><label>المتعلم</label><div id="pkp"></div></div><div><label for="cp">التصنيف</label><select id="cp">${opt(P)}</select></div>
       <div><label for="dp">وصف الموقف</label><textarea id="dp" maxlength="500" required></textarea></div><p class="err" id="ep" role="alert"></p>
-      <div class="acts"><button class="btn" id="gp">حفظ الموقف الإيجابي</button></div><p class="sub">لا يشترط أن ينتج عن الموقف نقاط. للتعزيز بنقاط استخدم «تسجيل تعزيز».</p></form>
-    <form class="card form" id="fn" hidden><div><label>المتعلم</label><div id="pkn"></div></div>
+      <div class="acts"><button class="btn" id="gp">حفظ الموقف الإيجابي</button></div><p class="sub">لا يشترط أن ينتج عن الموقف نقاط. للتعزيز بنقاط استخدم «منح النقاط والأوسمة».</p></form>`;
+    pickerField($("#pkp"), sp, "s");
+    $("#fp").onsubmit = async (ev) => { ev.preventDefault(); $("#ep").textContent = ""; if (!sp.s) { $("#ep").textContent = "اختر المتعلم أولاً."; return; } $("#gp").disabled = true;
+      try { await rpc("qm_record_positive", { p_student: sp.s.id, p_category: $("#cp").value, p_description: $("#dp").value }); toast("تم حفظ الموقف الإيجابي"); sp.s = null; pickerField($("#pkp"), sp, "s"); $("#dp").value = ""; }
+      catch (e) { $("#ep").textContent = mapErr(e); } $("#gp").disabled = false; };
+  }),
+
+  behavior: () => boot("negative.html", async (m, c) => {
+    const Ng = await types("qm_behavior_categories", (x) => x.kind === "negative"), sn = { s: null };
+    m.innerHTML = `<form class="card form" id="fn"><div><label>المتعلم</label><div id="pkn"></div></div>
       <div class="two"><div><label for="dt">تاريخ الواقعة</label><input id="dt" type="date" max="${todayISO()}" value="${todayISO()}" required></div><div><label for="tm">الوقت</label><input id="tm" type="time"></div></div>
       <div class="two"><div><label for="lc">موقع الحدوث</label><input id="lc" maxlength="120"></div><div><label for="cn">تصنيف السلوك</label><select id="cn">${opt(Ng)}</select></div></div>
       <div><label for="dn">وصف موضوعي للواقعة</label><textarea id="dn" maxlength="1500" required></textarea></div>
@@ -125,20 +131,16 @@ const PAGES = {
       <div><label for="fn2">مرفقات (حتى 3، صور أو PDF)</label><input id="fn2" type="file" multiple accept="image/png,image/jpeg,image/webp,application/pdf"></div>
       <p class="err" id="en" role="alert"></p><div class="acts"><button class="btn" id="gn">رفع الواقعة إلى وكيل شؤون الطلاب</button></div>
       <p class="sub">تُسجَّل الواقعة بحالة «مرصودة» وتصل إلى صندوق الوكيل. وليست مخالفة معتمدة ولا يُخصم بها شيء. صِف ما حدث دون أحكام.</p></form>`;
-    pickerField($("#pkp"), sp, "s"); pickerField($("#pkn"), sn, "s");
-    $$(".tabs button", m).forEach((b) => (b.onclick = () => { $$(".tabs button", m).forEach((x) => x.classList.toggle("on", x === b)); $("#fp").hidden = b.dataset.t !== "p"; $("#fn").hidden = b.dataset.t !== "n"; }));
-    $("#fp").onsubmit = async (ev) => { ev.preventDefault(); $("#ep").textContent = ""; if (!sp.s) { $("#ep").textContent = "اختر المتعلم أولاً."; return; } $("#gp").disabled = true;
-      try { await rpc("qm_record_positive", { p_student: sp.s.id, p_category: $("#cp").value, p_description: $("#dp").value }); toast("تم حفظ الموقف الإيجابي"); sp.s = null; pickerField($("#pkp"), sp, "s"); $("#dp").value = ""; }
-      catch (e) { $("#ep").textContent = mapErr(e); } $("#gp").disabled = false; };
+    pickerField($("#pkn"), sn, "s");
     $("#fn").onsubmit = async (ev) => { ev.preventDefault(); const er = $("#en"); er.textContent = ""; if (!sn.s) { er.textContent = "اختر المتعلم أولاً."; return; }
       const files = [...$("#fn2").files]; if (files.length > 3) { er.textContent = "الحد الأقصى 3 مرفقات."; return; } $("#gn").disabled = true;
       try { const paths = []; for (const f of files) paths.push(await uploadFile(f, c.uid));
         const r = await rpc("qm_report_incident", { p_student: sn.s.id, p_category: $("#cn").value, p_description: $("#dn").value, p_date: $("#dt").value || null, p_time: $("#tm").value || null, p_location: $("#lc").value, p_notes: $("#nt").value, p_parties: $("#pr").value, p_attachments: paths });
-        toast(`رُفعت الواقعة برقم ${r.no} وحالتها: مرصودة`); location.href = "incidents.html";
+        toast(`رُفعت الواقعة برقم ${r.no} وحالتها: مرصودة`); location.href = "negative.html?tab=incidents";
       } catch (e) { er.textContent = mapErr(e); $("#gn").disabled = false; } };
   }),
 
-  incidents: () => boot("incidents.html", async (m) => {
+  incidents: () => boot("negative.html", async (m) => {
     let f = "all"; const root = document.createElement("div");
     const draw = async () => { const rows = await rpc("qm_incidents_list", { p_scope: "mine" });
       const sel = rows.filter((i) => f === "all" || (f === "act" && i.needs_my_action) || (f === "open" && !i.is_closed) || (f === "closed" && i.is_closed));
@@ -149,7 +151,7 @@ const PAGES = {
     m.appendChild(root); bindIncidents(root, draw); await draw();
   }),
 
-  reinforcements: () => boot("reinforcements.html", async (m, c) => {
+  reinforcements: () => boot("positive.html", async (m, c) => {
     let mine = false, q = "";
     m.innerHTML = `<div class="tabs"><button data-m="0" class="on">كل التعزيزات</button><button data-m="1">ما سجّلتُه أنا</button></div><div class="form" style="max-width:420px;margin-bottom:12px"><input id="q" type="search" placeholder="تصفية بالاسم أو الصف" aria-label="تصفية"></div><div id="li"></div>`;
     const draw = async () => { let r = await rpc("qm_reinforcements_list", { p_mine: mine, p_limit: 300 }); const k = q.trim(); if (k) r = r.filter((x) => (x.student + x.grade + x.type).includes(k));
@@ -158,7 +160,7 @@ const PAGES = {
     $("#q").oninput = (e) => { q = e.target.value; draw(); }; await draw();
   }),
 
-  balances: () => boot("balances.html", async (m) => {
+  balances: () => boot("positive.html", async (m) => {
     const ex = await rpc("qm_excellence", { p_limit: 10 });
     m.innerHTML = `<div class="grid"><div class="card"><h4 style="margin-top:0">لوحة التميز</h4>${ex.length ? ex.map((r, i) => `<div class="rank"><span class="n ${i === 0 ? "g" : ""}">${i + 1}</span><b><a href="#" data-c="${r.id}">${esc(r.name)}</a></b><span class="v">${r.balance}</span><span class="track"><i style="width:${Math.round((r.balance / ex[0].balance) * 100)}%"></i></span></div>`).join("") : '<p class="sub">لا أرصدة بعد.</p>'}<p class="sub">للتكريم والتحفيز، وليست ترتيباً رسمياً.</p></div>
     <div class="card" style="grid-column:span 2"><h4 style="margin-top:0">أرصدة المتعلمين</h4><input id="q" type="search" placeholder="ابحث باسم المتعلم أو رقمه" aria-label="بحث"><div id="li" style="margin-top:10px"></div></div></div>`;
@@ -329,7 +331,7 @@ async function openAchievement(id, done) {
   } catch (e) { md.el.innerHTML = `<p class="err">${esc(mapErr(e))}</p><button class="btn sec" data-x>إغلاق</button>`; $("[data-x]", md.el).onclick = md.close; }
 }
 Object.assign(PAGES, {
-  achievements: () => boot("achievements.html", async (m, ctx) => {
+  achievements: () => boot("positive.html", async (m, ctx) => {
     const tabs = [["gallery", "معرض الإنجازات"], ["mine", "إنجازاتي"], ["add", "تسجيل إنجاز"], ["talents", "المواهب"]];
     if (ctx.isAdmin) tabs.splice(2, 0, ["review", "بانتظار التحقق"]);
     let cur = new URLSearchParams(location.search).get("t"); if (!tabs.some((t) => t[0] === cur)) cur = "gallery";
@@ -503,3 +505,5 @@ Object.assign(PAGES, {
     drawPk(); paint();
   }, { title: "إدارة النقاط", desc: "إضافة النقاط وتعديلها وحذفها" }),
 });
+PAGES.positive = () => openHub("positive.html");
+PAGES.negative = () => openHub("negative.html");

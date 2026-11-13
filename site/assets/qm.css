@@ -443,3 +443,13 @@ header.dash .idl .moe{padding-inline-start:14px}
 .pubsite header .bm small{white-space:nowrap}
 @media (max-width:1180px){.pubsite header .hid .moe{display:none}}
 .mdl[data-k="administrative"]{--ring:#17414f;background:radial-gradient(circle at 30% 25%,#7fb4c0,#2f7388 55%,#17414f)}
+
+/* الصفحات الفرعية داخل الصفحة المجمّعة (السلوك الإيجابي، السلوك السلبي) */
+.subnav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--line)}
+.subnav::-webkit-scrollbar{display:none}
+.subnav a{flex:none;display:inline-flex;align-items:center;gap:7px;padding:11px 16px;color:var(--ink2);font-weight:700;text-decoration:none;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-1px;transition:color .2s,background .2s}
+.subnav a .ico{width:17px;height:17px;margin:0}
+.subnav a:hover{color:var(--brand2);background:var(--soft)}
+.subnav a.on{color:var(--brand2);border-bottom-color:var(--gold)}
+.subnav a:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+main.hubmain{padding-top:18px}
