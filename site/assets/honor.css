@@ -1,5 +1,5 @@
 /* لوحة الشرف: الواجهة العامة لقيمي. ألوان النواة (الفيروزي والكحلي) مع ذهبي التكريم، وخط أميري للأسماء والعناوين. */
-:root{--hb-deep:#082a36;--hb-petrol:#0c4250;--hb-teal:#0f8a94;--hb-gold:#f0b34a;--hb-gold2:#c8922f;--hb-goldink:#8a6212;--hb-ivory:#fbf7ec;--hb-silver:#b9c6cf;--hb-bronze:#c98a5b;--hb-serif:"Amiri","Tajawal",serif}
+:root{--hb-deep:#082a36;--hb-petrol:#0c4250;--hb-teal:#0f8a94;--hb-gold:#f0b34a;--hb-gold2:#c8922f;--hb-goldink:#8a6212;--hb-ivory:#fbf7ec;--hb-silver:#b9c6cf;--hb-bronze:#c98a5b;--hb-serif:"Tajawal",sans-serif}
 .hb-wrap{max-width:1180px;margin:0 auto;padding:0 16px}
 .hb-serif{font-family:var(--hb-serif)}
 
@@ -196,3 +196,10 @@
   .hb-bar i{transition:width 1s cubic-bezier(.2,.8,.2,1)}
   @keyframes hbrise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
 }
+/* الهوية الأصلية: الترويسة (hero3) من core.css، فلا ألوان أو خطوط خاصة هنا */
+.hb-hero{min-height:0}
+.hb-hero .hb-id,.hb-hero .hb-bal{position:relative;z-index:1}
+.hb-hero .hb-kick{color:#fff0c2}
+.hb-hero .hb-seal{--m:#f0c46a}
+.hb-h h2{font-weight:800}
+.hb-rk,.hb-rc b{font-family:inherit}
