@@ -1,5 +1,5 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ملف المتعلم – قيمي</title><meta name="description" content="ملف المتعلم: الأوسمة والنقاط ومن منحها"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/qm.css"><link rel="stylesheet" href="assets/about.css"><link rel="stylesheet" href="assets/honor.css"></head><body class="pubsite">
+<title>ملف المتعلم – قيمي</title><meta name="description" content="ملف المتعلم: الأوسمة والنقاط ومن منحها"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/qm.css"><link rel="stylesheet" href="assets/about.css"><link rel="stylesheet" href="assets/honor.css"><link rel="stylesheet" href="assets/student.css"></head><body class="pubsite">
 <div id="hdr"></div>
 <div id="sv"><main class="hb-wrap"><p class="hb-empty" style="padding:70px 0">جارٍ التحميل…</p></main></div>
 <div id="ftr"></div>
@@ -14,19 +14,65 @@ pubInit("leaderboard.html");
   let s; try { s = await rpc("qm_pub_student", { p_student: id }); } catch (e) { return msg("تعذر فتح الملف", "قد يكون الرابط غير صحيح أو المتعلم غير مقيّد هذا العام."); }
   const LV = await loadLevels(), lv = levelOf(LV, s.balance);
   document.title = s.name + " – قيمي";
-  const has = s.balance > 0, mName = (m) => new Date(m + "-15T12:00:00Z").toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", year: "numeric", timeZone: "UTC" });
-  const nowM = todayISO().slice(0, 7);
-  const rk = (lab, r, tot) => `<div class="hb-rc${has && r <= 3 ? " top" : ""}"><small>${lab}</small>${has ? `<b>${r}</b><em>من ${tot}</em>` : `<b>—</b><em>بانتظار أول نقطة</em>`}</div>`;
-  const grp = (k, label) => { const L = s.badges.filter((b) => (b.kind || "general") === k); return `<div class="hb-bgrp"><h3>${label}<i>${L.length}</i></h3>${L.length ? `<div class="hb-bl">${L.map((b) => `<div class="hb-bc">${medal(b, "lg")}<b>${esc(b.name)}</b>${b.points ? `<span class="p"><bdi>+${b.points}</bdi> نقطة</span>` : ""}${b.criteria ? `<small>${esc(b.criteria)}</small>` : ""}<small>منحه: ${esc(b.by)}</small><small>${esc(fmtShort(b.at))}</small></div>`).join("")}</div>` : `<p class="hb-note" style="margin:0">لا أوسمة في هذا التصنيف بعد.</p>`}</div>`; };
-  root.innerHTML = `<section class="hero3 slim hb-hero"><div class="hb-id"><span class="hb-seal" aria-hidden="true">${esc(initials(s.name))}</span><div><span class="hb-kick">${ico("medal")}ملف المتعلم</span><h1>${esc(s.name)}</h1><p>المرحلة المتوسطة، ${klass(s)}</p>${lv.cur ? `<span class="hb-lvp">${ico("crown")}مستوى ${esc(lv.cur.name)}</span>` : ""}</div></div>
-      <div class="hb-bal"><div class="hb-b"><small>الرصيد الشهري</small><b>${s.month}<em>نقطة</em></b><span>${esc(mName(nowM))}</span></div><div class="hb-b cum"><small>الرصيد التراكمي</small><b>${s.balance}<em>نقطة</em></b><span>مجموع الأشهر منذ بداية العام</span></div></div></section>
-    <main class="hb-wrap" style="padding-bottom:40px">
-      ${lv.cur ? `<section class="hb-lv" aria-label="مستوى المتعلم"><div class="hb-lvh"><div><small>مستوى المتعلم</small><span class="hb-lvn">${ico("crown")}${esc(lv.cur.name)}</span></div><span class="hb-lvt">${lv.next ? `باقي <bdi>${lv.next.min - s.balance}</bdi> نقطة للوصول إلى مستوى <b>${esc(lv.next.name)}</b>` : "وصل إلى أعلى مستوى"}</span></div>${lv.next ? `<div class="hb-lvb" role="progressbar" aria-valuemin="${lv.cur.min}" aria-valuemax="${lv.next.min}" aria-valuenow="${s.balance}"><i style="--w:${Math.round(((s.balance - lv.cur.min) / (lv.next.min - lv.cur.min)) * 100)}%"></i></div>` : ""}<ol class="hb-lvs">${LV.slice().sort((x, y) => x.min - y.min).map((l) => `<li class="${l.min < lv.cur.min ? "done" : l.min === lv.cur.min ? "now" : ""}"><b>${esc(l.name)}</b><small><bdi>${l.min}</bdi></small></li>`).join("")}</ol></section>` : ""}
-      <div class="hb-ranks">${rk("ترتيبه في المدرسة", s.rank, s.rank_total)}${rk("ترتيبه في الصف", s.rank_grade, s.grade_total)}${rk("ترتيبه في الفصل", s.rank_section, s.section_total)}</div>
-      <section class="hb-sec"><div class="hb-h"><div><h2>الأوسمة</h2><p>${s.badges.length ? "كل وسام مع من منحه وتاريخه." : "لم يحصل على أوسمة بعد."}</p></div></div>${grp("educational", "أوسمة تعليمية")}${grp("administrative", "أوسمة إدارية")}${grp("general", "أوسمة عامة")}</section>
-      <section class="hb-sec"><div class="hb-h"><div><h2>النقاط</h2><p>${s.points.length ? "كل مرة مُنح فيها نقاطاً، ومن منحها." : "لم يحصل على نقاط بعد."}</p></div></div>
-        ${s.points.length ? `<div class="hb-panel" style="overflow:auto"><table class="hb-tbl"><thead><tr><th>سبب المنح</th><th>النقاط</th><th>المانح</th><th class="hide-m">التاريخ</th></tr></thead><tbody>${s.points.map((r) => `<tr><td><b>${esc(r.type)}</b></td><td class="p"><bdi>+${r.points}</bdi></td><td>${esc(r.by)}</td><td class="hide-m"><small>${esc(fmtShort(r.at))}</small></td></tr>`).join("")}</tbody></table></div>` : ""}</section>
-      ${s.months.length > 1 ? `<section class="hb-sec"><div class="hb-h"><div><h2>الرصيد شهراً بشهر</h2></div></div><div class="hb-months">${s.months.map((m) => `<span class="${m.m === nowM ? "now" : ""}"><b>${m.points}</b>${esc(mName(m.m))}</span>`).join("")}</div></section>` : ""}
+  const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+  const has = s.balance > 0, nowM = todayISO().slice(0, 7);
+  const mName = (m, o) => new Date(m + "-15T12:00:00Z").toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", ...(o ? {} : { year: "numeric" }), timeZone: "UTC" });
+  const fmtDate = (d) => new Date(d).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "long", year: "numeric", timeZone: TZ });
+  const B = s.badges || [], P = s.points || [];
+  const kinds = [["all", "الكل"], ["educational", "تعليمية"], ["administrative", "إدارية"], ["general", "عامة"]].map(([k, l]) => [k, l, k === "all" ? B.length : B.filter((b) => (b.kind || "general") === k).length]);
+
+  // الترويسة
+  const stat = (icon, lab, val, unit, cls) => `<div class="ms-st ${cls || ""}"><span class="ic">${ico(icon)}</span><small>${lab}</small><b><span data-to="${val}">${val}</span><em>${unit}</em></b></div>`;
+  const best = has ? Math.min(s.rank, s.rank_grade, s.rank_section) : 0;
+  const hero = `<section class="hero3 slim ms-hero"><div class="ms-top">
+      <div class="ms-av">${lv.cur ? `<i>${ico("crown")}</i>` : ""}<span aria-hidden="true">${esc(initials(s.name))}</span></div>
+      <div><span class="hb-kick">${ico("medal")}ملف المتعلم</span><h1>${esc(s.name)}</h1><p class="ms-cls">${ico("school")}المرحلة المتوسطة، ${klass(s)}</p>
+        <div class="ms-tags">${lv.cur ? `<span class="ms-tag g">${ico("crown")}مستوى ${esc(lv.cur.name)}</span>` : ""}${has && s.rank <= 10 ? `<span class="ms-tag">${ico("trophy")}من العشرة الأوائل في المدرسة</span>` : ""}</div></div></div>
+    <div class="ms-stats">${stat("calendar", "رصيد " + mName(nowM, 1), s.month, "نقطة")}${stat("star", "الرصيد منذ بداية العام", s.balance, "نقطة", "gold")}${stat("medal", "الأوسمة", B.length, B.length === 1 ? "وسام" : B.length === 2 ? "وسامان" : B.length > 10 ? "وساماً" : "أوسمة")}</div></section>`;
+
+  // الترتيب
+  const rk = (icon, lab, r, tot) => `<div class="ms-rk${has && r <= 3 ? " top" : ""}"><span class="ic">${ico(has && r <= 3 ? "trophy" : icon)}</span><small>${lab}</small>${has ? `<b>${r}<em>من ${tot}</em></b>` : `<b>—<em>بانتظار أول نقطة</em></b>`}</div>`;
+  const ranks = `<div class="ms-ranks">${rk("building", "ترتيبه في المدرسة", s.rank, s.rank_total)}${rk("layers", "ترتيبه في الصف", s.rank_grade, s.grade_total)}${rk("users", "ترتيبه في الفصل", s.rank_section, s.section_total)}</div>`;
+
+  // المستوى
+  const level = lv.cur ? `<section class="hb-lv" aria-label="مستوى المتعلم"><div class="hb-lvh"><div><small>مستوى المتعلم</small><span class="hb-lvn">${ico("crown")}${esc(lv.cur.name)}</span></div><span class="hb-lvt">${lv.next ? `باقي <bdi>${lv.next.min - s.balance}</bdi> نقطة للوصول إلى مستوى <b>${esc(lv.next.name)}</b>` : "وصل إلى أعلى مستوى"}</span></div>${lv.next ? `<div class="hb-lvb" role="progressbar" aria-valuemin="${lv.cur.min}" aria-valuemax="${lv.next.min}" aria-valuenow="${s.balance}"><i style="--w:${Math.round(((s.balance - lv.cur.min) / (lv.next.min - lv.cur.min)) * 100)}%"></i></div>` : ""}<ol class="hb-lvs">${LV.slice().sort((x, y) => x.min - y.min).map((l) => `<li class="${l.min < lv.cur.min ? "done" : l.min === lv.cur.min ? "now" : ""}"><b>${esc(l.name)}</b><small><bdi>${l.min}</bdi></small></li>`).join("")}</ol></section>` : "";
+
+  // خزانة الأوسمة: الوسام بتصميمه الكامل داخل بطاقة ذهبية، وشريط المانح أسفلها
+  const card = (b, i) => { const k = b.kind || "general";
+    return `<article class="ms-badge" data-k="${esc(k)}" style="--i:${i}">
+      <span class="ms-kind">${esc(KIND[k] || "عام")}</span>
+      <div class="ms-art">${b.image ? `<img src="${esc(badgeUrl(b.image))}" alt="وسام ${esc(b.name)}" loading="lazy">` : ico(b.icon in ICONS ? b.icon : "trophy")}</div>
+      <h3>${esc(b.name)}</h3>
+      ${b.points ? `<span class="ms-pts"><bdi>+${b.points}</bdi> نقطة</span>` : ""}
+      ${b.criteria ? `<p class="ms-crit">${esc(b.criteria)}</p>` : ""}
+      <time datetime="${esc(b.at)}">${esc(fmtDate(b.at))}</time>
+      <footer class="ms-by">${ico("user")}<small>مُنح بواسطة:</small><b>${esc(b.by)}</b></footer></article>`; };
+  const cabinet = `<section class="hb-sec" id="badges"><div class="ms-cab-h"><div><h2>${ico("medal")}خزانة الأوسمة</h2><p>${B.length ? "كل وسام حصل عليه، ومن منحه، ومتى." : "لم يحصل على أوسمة بعد."}</p></div>
+      ${B.length ? `<div class="ms-chips" role="group" aria-label="تصفية الأوسمة">${kinds.filter(([k, , n]) => k === "all" || n).map(([k, l, n]) => `<button type="button" data-f="${k}" aria-pressed="${k === "all"}">${l}<i>${n}</i></button>`).join("")}</div>` : ""}</div>
+    ${B.length ? `<div class="ms-bl">${B.map(card).join("")}</div>` : `<div class="ms-none">${ico("medal")}<b>أول وسام بانتظارك</b><p>الأوسمة تُمنح على التميز في التعلم والسلوك والمشاركة. حين يمنحك معلمك وساماً سيظهر هنا باسمه وتاريخه.</p></div>`}</section>`;
+
+  // سجل النقاط
+  const SHOW = 8;
+  const pointsSec = `<section class="hb-sec"><div class="hb-h"><div><h2>سجل النقاط</h2><p>${P.length ? "كل مرة مُنح فيها نقاطاً، ومن منحها." : "لم يحصل على نقاط بعد."}</p></div></div>
+    ${P.length ? `<ol class="ms-tl">${P.map((r, i) => `<li${i >= SHOW ? " hidden" : ""}><span class="ms-dot">${ico("star")}</span><div class="bd"><b>${esc(r.type)}</b><small>منحها ${esc(r.by)}، ${esc(fmtDate(r.at))}</small></div><span class="pv"><bdi>+${r.points}</bdi><small>نقطة</small></span></li>`).join("")}</ol>${P.length > SHOW ? `<button type="button" class="ms-more" aria-expanded="false">عرض كل السجل (${P.length})</button>` : ""}` : ""}</section>`;
+
+  // الرصيد شهراً بشهر (من الأقدم إلى الأحدث)
+  const M = (s.months || []).slice().sort((a, b) => (a.m < b.m ? -1 : 1)), mx = Math.max(1, ...M.map((m) => m.points));
+  const months = M.length > 1 ? `<section class="hb-sec"><div class="hb-h"><div><h2>الرصيد شهراً بشهر</h2><p>الشهر الحالي باللون الذهبي.</p></div></div><div class="ms-mo" role="img" aria-label="${esc(M.map((m) => mName(m.m) + ": " + m.points + " نقطة").join("، "))}">${M.map((m) => `<div class="${m.m === nowM ? "now" : ""}"><b>${m.points}</b><i style="--h:${Math.round((m.points / mx) * 100)}%"></i><span>${esc(mName(m.m, 1))}</span></div>`).join("")}</div></section>` : "";
+
+  root.innerHTML = hero + `<main class="hb-wrap ms-main" style="padding-bottom:40px">${ranks}${level}${cabinet}${pointsSec}${months}
       <p class="hb-note">يعرض هذا الملف الأوسمة والنقاط ومن منحها فقط.</p><p><a class="btn sec" href="leaderboard.html#dirsec">${ico("arrow")}ملفات الطلاب</a></p></main>`;
+
+  // تفاعل: تصفية الأوسمة، وتوسيع السجل، وعدّ الأرقام
+  const bl = root.querySelector(".ms-bl");
+  if (bl) requestAnimationFrame(() => bl.classList.add("in"));
+  root.querySelectorAll(".ms-chips button").forEach((btn) => btn.addEventListener("click", () => {
+    root.querySelectorAll(".ms-chips button").forEach((x) => x.setAttribute("aria-pressed", x === btn));
+    let i = 0; bl.querySelectorAll(".ms-badge").forEach((c) => { const on = btn.dataset.f === "all" || c.dataset.k === btn.dataset.f; c.hidden = !on; if (on) c.style.setProperty("--i", i++); });
+    bl.classList.remove("in"); void bl.offsetWidth; bl.classList.add("in");
+  }));
+  const more = root.querySelector(".ms-more");
+  if (more) more.addEventListener("click", () => { const open = more.getAttribute("aria-expanded") !== "true"; root.querySelectorAll(".ms-tl li").forEach((li, i) => { if (i >= SHOW) li.hidden = !open; }); more.setAttribute("aria-expanded", open); more.textContent = open ? "عرض أقل" : `عرض كل السجل (${P.length})`; });
+  if (!reduce) root.querySelectorAll("[data-to]").forEach((el) => { const to = +el.dataset.to, t0 = performance.now(); if (!to) return; const step = (t) => { const k = Math.min(1, (t - t0) / 1100); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); }; el.textContent = 0; requestAnimationFrame(step); });
 })();
 </script></body></html>
