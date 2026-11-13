@@ -98,7 +98,7 @@ const PAGES = {
           <div class="tabs"><button type="button" data-k="points" class="${k === "points" ? "on" : ""}">${ico("star")} نقاط</button><button type="button" data-k="badge" class="${k === "badge" ? "on" : ""}">${ico("medal")} وسام</button></div>
           ${k === "points" ? `<label>سبب المنح</label><div class="gr-opts">${T.map((t) => `<button type="button" class="gr-opt" data-r="${t.id}" data-p="${t.default_points}" aria-pressed="${t.id === ref.points}"><b>${esc(t.name_ar)}</b><span class="pp">${t.default_points ? "<bdi>+" + t.default_points + "</bdi>" : "بلا نقاط"}</span></button>`).join("")}</div>
             <div class="two"><div><label for="gp">عدد النقاط (حتى ${maxP})</label><input id="gp" type="number" min="0" max="${maxP}" value="${T.find((t) => t.id === ref.points)?.default_points ?? 0}"></div><div><label for="gn">ملاحظة (اختياري)</label><input id="gn" maxlength="300"></div></div>`
-          : (B.length ? `<label>الوسام</label>${badgeGroups(B, c.who?.specialty).map((g, i) => { const opt = (b) => `<button type="button" class="gr-opt" data-r="${b.id}" aria-pressed="${b.id === ref.badge}">${medal(b, "sm")}<b>${esc(b.name_ar)}</b><span class="pp">${b.points ? "<bdi>+" + b.points + "</bdi> نقطة" : "بلا نقاط"}</span></button>`;
+          : (B.length ? `<label>الوسام</label>${badgeGroups(B, c.who?.specialty, c.isAdmin).map((g, i) => { const opt = (b) => `<button type="button" class="gr-opt" data-r="${b.id}" aria-pressed="${b.id === ref.badge}">${medal(b, "sm")}<b>${esc(b.name_ar)}</b><span class="pp">${b.points ? "<bdi>+" + b.points + "</bdi> نقطة" : "بلا نقاط"}</span></button>`;
               return `<details class="bg-g${g.mine ? " mine" : ""}" ${g.open || (ref.badge && g.items.some((b) => b.id === ref.badge)) || (i === 0 && !ref.badge) ? "open" : ""}><summary>${ico(g.icon)}<span>${esc(g.title)}</span><i>${g.items.length}</i></summary>${g.subs ? g.subs.map(([t, L]) => `<h5 class="bg-s">${esc(t)}</h5><div class="gr-opts">${L.map(opt).join("")}</div>`).join("") : `<div class="gr-opts">${g.items.map(opt).join("")}</div>`}</details>`; }).join("")}
             <p class="sub" id="gc"></p><label for="gn">سبب المنح (اختياري)</label><input id="gn" maxlength="300">` : `<p class="sub">لا أوسمة فعّالة. يضيفها مدير النظام من الإدارة ← الأوسمة.</p>`)}
           <p class="err" id="ge" role="alert"></p><div class="acts mt"><button class="btn" id="go" type="button">${k === "points" ? "منح النقاط" : "منح الوسام"}</button></div>`;
@@ -114,10 +114,11 @@ const PAGES = {
           try {
             const R = await rpc("qm_grant_bulk", { p_students: studs.map((s) => s.id), p_kind: k, p_ref: ref[k], p_points: k === "points" ? +$("#gp", md.el).value || 0 : 0, p_note: $("#gn", md.el)?.value || null });
             md.close();
-            const sk = R.skipped.length, why = k === "badge" ? "يحملون الوسام من قبل" : "مُنحوا السبب نفسه قبل قليل";
-            toast(R.ok ? `${k === "points" ? "مُنحت النقاط" : "مُنح الوسام"} لـ ${R.ok} متعلماً${sk ? `، وتُجوِّز ${sk} (${why})` : ""}` : `لم يُمنح أحد: ${why}.`, !R.ok);
+            const what = k === "points" ? "النقاط" : "الوسام", sk = R.skipped || [];
+            if (R.ok) toast(`${k === "points" ? "مُنحت النقاط" : "مُنح الوسام"} لـ ${R.ok === 1 ? "متعلم واحد" : R.ok + " متعلماً"}`);
+            if (sk.length) notice(R.ok ? `لم يُمنح ${what} لـ ${sk.length === 1 ? "متعلم واحد" : sk.length + " متعلمين"}` : `لم يُمنح ${what}`, sk.map((x) => [x.name, skipWhy(x.why, k)]));
             st.sel.clear(); await Promise.all([loadRoster(), loadRec()]);
-          } catch (e) { er.textContent = mapErr(e); go.disabled = false; }
+          } catch (e) { er.textContent = mapErr(e); notice(k === "points" ? "لم تُمنح النقاط" : "لم يُمنح الوسام", [[null, mapErr(e)]]); go.disabled = false; }
         };
       };
       paint();

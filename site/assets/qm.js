@@ -32,6 +32,8 @@ const ERR = {
   date_future: "لا يمكن تسجيل واقعة بتاريخ مستقبلي.",
   already_void: "سبق إلغاء هذا التعزيز.",
   too_many: "العدد كبير. امنح 60 متعلماً كحد أقصى في المرة الواحدة.",
+  too_soon: "مُنح هذا الوسام للمتعلم قبل أقل من دقيقة. انتظر دقيقة ثم أعد المحاولة.",
+  subject_mismatch: "هذا الوسام خاص بمعلمي مادته. اختر من أوسمة تخصصك أو الأوسمة العامة.",
 };
 const mapErr = (e) => { const m = e?.message || String(e); return ERR[m] || (/permission denied|row-level security/i.test(m) ? ERR.forbidden : m); };
 async function rpc(fn, args) {
@@ -40,6 +42,17 @@ async function rpc(fn, args) {
   return data;
 }
 
+// شريط تنبيه أصفر يظهر أعلى الصفحة: سبب عدم المنح لكل متعلم
+const skipWhy = (w, k) => ({ too_soon: "مُنح هذا الوسام له قبل أقل من دقيقة", duplicate: k === "badge" ? "يحمل هذا الوسام من قبل" : "مُنح السبب نفسه قبل قليل", student_not_enrolled: "غير مقيّد في العام الدراسي الحالي" }[w] || ERR[w] || w);
+function notice(title, rows) {
+  document.querySelectorAll(".qm-notice").forEach((x) => x.remove());
+  const d = document.createElement("div"); d.className = "qm-notice"; d.setAttribute("role", "alert");
+  const L = (rows || []).slice(0, 8), more = (rows || []).length - L.length;
+  d.innerHTML = `<div class="qn-in">${ico("bell")}<div class="qn-t"><b>${esc(title)}</b>${L.length ? `<ul>${L.map(([n, w]) => `<li>${n ? `<b>${esc(n)}</b>: ` : ""}${esc(w)}</li>`).join("")}${more > 0 ? `<li>و${more} آخرون للسبب نفسه</li>` : ""}</ul>` : ""}</div><button type="button" aria-label="إغلاق التنبيه">${ico("x")}</button></div>`;
+  const close = () => { d.classList.add("out"); setTimeout(() => d.remove(), 300); };
+  d.querySelector("button").onclick = close; document.body.appendChild(d);
+  let t = setTimeout(close, 9000); d.onmouseenter = () => clearTimeout(t); d.onmouseleave = () => (t = setTimeout(close, 4000));
+}
 function toast(msg, bad) { const d = document.createElement("div"); d.className = "toast" + (bad ? " bad" : ""); d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 3800); }
 function modal(html, wide) {
   const ov = document.createElement("div"); ov.className = "ov"; ov.innerHTML = `<div class="md" role="dialog" aria-modal="true" ${wide ? 'style="max-width:860px"' : ""}>${html}</div>`;
@@ -71,12 +84,13 @@ const BADGE_AREAS = [
   ["lead", "أوسمة القيادة والمشاركة", ["القيادة", "المبادرة", "التطوع", "التعاون", "التواصل"], "users"],
   ["skills", "أوسمة المهارات والتفكير", ["الإبداع", "البحث", "التفكير", "التحليل", "المهارات العددية", "القراءة", "التعلم الإلكتروني", "التحول الرقمي"], "gem"],
 ];
-function badgeGroups(B, specialty) {
+function badgeGroups(B, specialty, all) {
   const sp = (specialty || "").trim(), mySub = SUBJECTS[sp] || Object.entries(SUBJECTS).find(([k]) => sp && sp.includes(k))?.[1] || "";
   const byName = (a, b) => a.name_ar.localeCompare(b.name_ar, "ar"), out = [];
   const edu = B.filter((b) => b.kind === "educational"), mine = edu.filter((b) => mySub && b.category === mySub).sort(byName);
   if (mine.length) out.push({ title: "أوسمة تخصصك: " + mySub, items: mine, open: true, mine: true, icon: "star" });
-  const other = edu.filter((b) => !mine.includes(b)), subs = {};
+  // أوسمة المواد الأخرى لا تظهر إلا لمدير النظام
+  const other = all ? edu.filter((b) => !mine.includes(b)) : [], subs = {};
   other.forEach((b) => (subs[b.category || "مواد أخرى"] ||= []).push(b));
   if (other.length) out.push({ title: mine.length ? "أوسمة المواد الأخرى" : "الأوسمة التعليمية", items: other, icon: "cap", subs: Object.keys(subs).sort((a, b) => a.localeCompare(b, "ar")).map((k) => [k, subs[k].sort(byName)]) });
   const gen = B.filter((b) => b.kind !== "educational" && b.kind !== "administrative"), used = new Set();

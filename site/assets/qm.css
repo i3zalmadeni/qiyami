@@ -491,3 +491,18 @@ main.hubmain{padding-top:18px}
 .bg-g.mine>summary{background:color-mix(in srgb,#f0b34a 14%,var(--surface))}
 .bg-g.mine>summary .ico{color:#a97b1f}
 .bg-s{font-size:.86rem;color:var(--muted);margin:12px 12px 0;font-weight:700}
+
+/* شريط التنبيه الأصفر أعلى الصفحة */
+.qm-notice{position:fixed;inset-block-start:14px;inset-inline:0;margin:0 auto;width:min(620px,calc(100% - 24px));z-index:200;animation:qnin .35s cubic-bezier(.2,.8,.2,1)}
+.qm-notice.out{animation:qnout .3s ease forwards}
+.qn-in{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:14px 16px;border-radius:16px;background:#fff4c2;border:1.5px solid #f0c94a;color:#4a3800;box-shadow:0 14px 34px -12px rgba(120,90,0,.45)}
+.qn-in>.ico{width:22px;height:22px;color:#a87a00;margin-top:2px}
+.qn-t b{font-size:1rem}
+.qn-t ul{margin:6px 0 0;padding-inline-start:18px;font-size:.9rem;line-height:1.8}
+.qn-t li b{font-size:.9rem}
+.qn-in button{border:0;background:transparent;cursor:pointer;color:#7a5a00;padding:2px;border-radius:8px}
+.qn-in button .ico{width:18px;height:18px}
+.qn-in button:focus-visible{outline:2px solid #a87a00}
+@keyframes qnin{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:none}}
+@keyframes qnout{to{opacity:0;transform:translateY(-24px)}}
+@media (prefers-reduced-motion:reduce){.qm-notice,.qm-notice.out{animation:none}}
