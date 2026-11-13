@@ -1,37 +1,30 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>لوحة الصدارة – قيمي</title><meta name="description" content="أعلى المتعلمين نقاطاً في المدرسة والصف والفصل"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/qm.css"><link rel="stylesheet" href="assets/about.css"></head><body class="pubsite">
+<title>ملف المتعلم – قيمي</title><meta name="description" content="ملف المتعلم: الأوسمة والنقاط ومن منحها"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/qm.css"><link rel="stylesheet" href="assets/about.css"><link rel="stylesheet" href="assets/honor.css"></head><body class="pubsite">
 <div id="hdr"></div>
-<section class="sv" id="sv"><div class="wrap"><p class="sub" style="padding:60px 0;text-align:center">جارٍ التحميل…</p></div></section><div id="ftr"></div>
+<div id="sv"><main class="hb-wrap"><p class="hb-empty" style="padding:70px 0">جارٍ التحميل…</p></main></div>
+<div id="ftr"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="assets/config.js"></script><script src="assets/chrome.js"></script><script src="assets/qm.js"></script><script src="assets/about-icons.js"></script>
 <script>
 pubInit("profiles.html");
 (async () => {
-  const root = document.getElementById("sv");
-  const id = new URLSearchParams(location.search).get("id");
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { root.innerHTML = `<div class="wrap"><div class="card empty"><div class="big">${ico("lock")}</div><b>الملف الشخصي لمنسوبي المدرسة</b><p class="sub">سجّل الدخول بحساب النواة لعرض الملف.</p><a class="btn" href="login.html?next=${encodeURIComponent("student.html?id=" + (id || ""))}">تسجيل الدخول</a></div></div>`; return; }
-  if (!id) { root.innerHTML = `<div class="wrap">${empty("users", "لم يُحدَّد متعلم", "افتح الملف من صفحة ملفات الطلاب.")}</div>`; return; }
-  let s; try { s = await rpc("qm_student_profile", { p_student: id }); } catch (e) { root.innerHTML = `<div class="wrap"><p class="err">${esc(mapErr(e))}</p></div>`; return; }
+  const root = document.getElementById("sv"), id = new URLSearchParams(location.search).get("id");
+  const msg = (t, s) => (root.innerHTML = `<main class="hb-wrap" style="padding:50px 16px"><div class="hb-panel"><p class="hb-empty"><b>${t}</b><br>${s}</p><p style="text-align:center;margin:0 0 24px"><a class="btn" href="profiles.html">ملفات المتعلمين</a></p></div></main>`);
+  if (!id) return msg("لم يُحدَّد متعلم", "افتح الملف من صفحة ملفات المتعلمين.");
+  let s; try { s = await rpc("qm_pub_student", { p_student: id }); } catch (e) { return msg("تعذر فتح الملف", "قد يكون الرابط غير صحيح أو المتعلم غير مقيّد هذا العام."); }
   document.title = s.name + " – قيمي";
-  const ini = (n) => (n || "").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join(" ");
-  const ago = (t) => { const m = Math.max(1, Math.round((Date.now() - new Date(t)) / 60000)); return m < 60 ? "قبل " + m + " دقيقة" : m < 1440 ? "قبل " + Math.round(m / 60) + " ساعة" : fmtShort(t); };
-  const has = s.balance > 0;
-  const rk = (ic, lab, r, tot) => `<div class="sv-rk${has && r <= 3 ? " top" : ""}"><span class="sv-ri">${ico(ic)}</span><small>${lab}</small>${has ? `<b>${r}</b><em>من ${tot}</em>` : `<b>—</b><em>بانتظار أول نقطة</em>`}</div>`;
-  const BD = ["#f6c25e,#e29a2c", "#6fc7d4,#0f8a94", "#9ad39a,#2a9d65", "#f19aa6,#d6476a", "#b3a1f0,#6a4fd0"];
-  const upd = (u) => `<div class="sv-u" data-k="${u.kind}"><span class="sv-ui">${ico(u.kind === "badge" ? "gem" : "star")}</span><div><b>${u.kind === "badge" ? "حصل على وسام " : ""}${esc(u.title)}</b><small>منحه: ${esc(u.by)} · ${ago(u.at)}</small>${u.note ? `<p>${esc(u.note)}</p>` : ""}</div>${u.kind === "points" && u.points ? `<span class="sv-up">+${u.points}</span>` : ""}</div>`;
-  root.innerHTML = `<div class="sv-hero"><div class="wrap">
-      <div class="sv-id"><span class="sv-av">${esc(ini(s.name))}</span><div><small>الملف الشخصي للمتعلم · متوسطة لبيد بن ربيعة</small><h1>${esc(s.name)}</h1><p>المرحلة المتوسطة · ${esc(s.grade || "—")}${s.section ? " · " + esc(s.section) : ""}</p></div>
-        <div class="sv-pt"><b>${s.balance}</b><span>نقطة</span></div></div>
-      <div class="sv-bd"><h2>${ico("gem")}الأوسمة <i>${s.badges.length}</i></h2>${s.badges.length ? `<div class="sv-bl">${s.badges.map((b, k) => `<div class="sv-b" style="--g:${BD[k % BD.length]}"><span class="sv-bm">${ico(b.icon in ICONS ? b.icon : "trophy")}</span><b>${esc(b.name)}</b><small>منحه: ${esc(b.by)}</small><small>${esc(fmtShort(b.at))}</small></div>`).join("")}</div>` : `<p class="sv-no">لم يحصل على أوسمة بعد، وكل وسام يبدأ بسلوك مميز.</p>`}</div></div></div>
-    <div class="wrap sv-main">
-      <div class="sv-k"><div class="sv-kc"><span>${ico("star")}</span><b>${s.balance}</b><small>رصيد النقاط الحالي</small></div><div class="sv-kc"><span>${ico("plus")}</span><b>${s.earned}</b><small>إجمالي النقاط الممنوحة</small></div><div class="sv-kc"><span>${ico("check")}</span><b>${s.reinforcements}</b><small>تعزيزاً</small></div><div class="sv-kc"><span>${ico("gem")}</span><b>${s.badges.length}</b><small>وساماً</small></div></div>
-      <h3 class="sv-h">ترتيبه في التعزيز</h3><div class="sv-r">${rk("school", "على مستوى المدرسة (المرحلة)", s.rank, s.rank_total || s.rank)}${rk("users", "على مستوى الصف", s.rank_grade, s.grade_total)}${rk("home", "على مستوى الفصل", s.rank_section, s.section_total)}</div>
-      <div class="sv-2"><div class="card"><h3 class="sv-h" style="margin-top:0">آخر التحديثات</h3>${s.updates.length ? s.updates.map(upd).join("") : '<p class="sub">لا تحديثات بعد.</p>'}</div>
-      <div class="card"><h3 class="sv-h" style="margin-top:0">من أين حصل على نقاطه؟</h3>${s.by_type.length ? `<table class="tbl"><thead><tr><th>جانب التعزيز</th><th>المرات</th><th>النقاط</th></tr></thead><tbody>${s.by_type.map((t) => `<tr><td><b>${esc(t.type)}</b></td><td>${t.n}</td><td>${pts(t.points)}</td></tr>`).join("")}</tbody><tfoot><tr><td><b>المجموع</b></td><td>${s.by_type.reduce((a, t) => a + t.n, 0)}</td><td>${pts(s.earned)}</td></tr></tfoot></table>` : '<p class="sub">لا تعزيزات بعد.</p>'}
-      ${s.givers.length ? `<h4>من منح النقاط</h4>${s.givers.map((g) => `<div class="row2" style="padding:6px 0"><span>${esc(g.name)} <small>(${g.n})</small></span>${pts(g.points)}</div>`).join("")}` : ""}</div></div>
-      ${s.achievements.length ? `<h3 class="sv-h">الإنجازات الموثقة</h3><div class="sv-a">${s.achievements.map((a) => `<div class="card"><b>${esc(a.title)}</b><br><small>${esc(a.category)} · ${esc(fmtShort(a.achieved_on))}</small></div>`).join("")}</div>` : ""}
-      ${s.talents.length ? `<h3 class="sv-h">المواهب</h3><div class="sv-a">${s.talents.map((t) => `<div class="card"><b>${esc(t.name)}</b><br><small>${esc(t.field)}</small></div>`).join("")}</div>` : ""}
-      <p class="sub" style="margin-top:20px">يعرض هذا الملف الجانب الإيجابي فقط، ولا يتضمن بيانات تواصل أو سلوكية.</p><a class="btn sec" href="profiles.html">${ico("arrow")}ملفات الطلاب</a></div>`;
+  const has = s.balance > 0, mName = (m) => new Date(m + "-15T12:00:00Z").toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", year: "numeric", timeZone: "UTC" });
+  const nowM = todayISO().slice(0, 7);
+  const rk = (lab, r, tot) => `<div class="hb-rc${has && r <= 3 ? " top" : ""}"><small>${lab}</small>${has ? `<b>${r}</b><em>من ${tot}</em>` : `<b>—</b><em>بانتظار أول نقطة</em>`}</div>`;
+  const grp = (k, label) => { const L = s.badges.filter((b) => (b.kind || "general") === k); return `<div class="hb-bgrp"><h3>${label}<i>${L.length}</i></h3>${L.length ? `<div class="hb-bl">${L.map((b) => `<div class="hb-bc">${medal(b, "lg")}<b>${esc(b.name)}</b>${b.points ? `<span class="p"><bdi>+${b.points}</bdi> نقطة</span>` : ""}${b.criteria ? `<small>${esc(b.criteria)}</small>` : ""}<small>منحه: ${esc(b.by)}</small><small>${esc(fmtShort(b.at))}</small></div>`).join("")}</div>` : `<p class="hb-note" style="margin:0">لا أوسمة في هذا التصنيف بعد.</p>`}</div>`; };
+  root.innerHTML = `<section class="hb-plaque slim"><div class="hb-id"><span class="hb-seal" aria-hidden="true">${esc(initials(s.name))}</span><div><span class="hb-kick">${ico("medal")}ملف المتعلم</span><h1>${esc(s.name)}</h1><p>المرحلة المتوسطة، ${klass(s)}</p></div></div>
+      <div class="hb-bal"><div class="hb-b"><small>الرصيد الشهري</small><b>${s.month}<em>نقطة</em></b><span>${esc(mName(nowM))}</span></div><div class="hb-b cum"><small>الرصيد التراكمي</small><b>${s.balance}<em>نقطة</em></b><span>مجموع الأشهر منذ بداية العام</span></div></div></section>
+    <main class="hb-wrap" style="padding-bottom:40px">
+      <div class="hb-ranks">${rk("ترتيبه في المدرسة", s.rank, s.rank_total)}${rk("ترتيبه في الصف", s.rank_grade, s.grade_total)}${rk("ترتيبه في الفصل", s.rank_section, s.section_total)}</div>
+      <section class="hb-sec"><div class="hb-h"><div><h2>الأوسمة</h2><p>${s.badges.length ? "كل وسام مع من منحه وتاريخه." : "لم يحصل على أوسمة بعد."}</p></div></div>${grp("educational", "أوسمة تعليمية")}${grp("general", "أوسمة عامة")}</section>
+      <section class="hb-sec"><div class="hb-h"><div><h2>النقاط</h2><p>${s.points.length ? "كل مرة مُنح فيها نقاطاً، ومن منحها." : "لم يحصل على نقاط بعد."}</p></div></div>
+        ${s.points.length ? `<div class="hb-panel" style="overflow:auto"><table class="hb-tbl"><thead><tr><th>سبب المنح</th><th>النقاط</th><th>المانح</th><th class="hide-m">التاريخ</th></tr></thead><tbody>${s.points.map((r) => `<tr><td><b>${esc(r.type)}</b></td><td class="p"><bdi>+${r.points}</bdi></td><td>${esc(r.by)}</td><td class="hide-m"><small>${esc(fmtShort(r.at))}</small></td></tr>`).join("")}</tbody></table></div>` : ""}</section>
+      ${s.months.length > 1 ? `<section class="hb-sec"><div class="hb-h"><div><h2>الرصيد شهراً بشهر</h2></div></div><div class="hb-months">${s.months.map((m) => `<span class="${m.m === nowM ? "now" : ""}"><b>${m.points}</b>${esc(mName(m.m))}</span>`).join("")}</div></section>` : ""}
+      <p class="hb-note">يعرض هذا الملف الأوسمة والنقاط ومن منحها فقط.</p><p><a class="btn sec" href="profiles.html">${ico("arrow")}ملفات المتعلمين</a></p></main>`;
 })();
 </script></body></html>

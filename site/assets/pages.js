@@ -35,25 +35,77 @@ const PAGES = {
   }),
 
   reinforce: () => boot("reinforce.html", async (m, c) => {
-    const T = await types("qm_reinforcement_types"), st = { s: null };
-    const S = (await sb.from("qm_settings").select("max_points_per_award").single()).data || { max_points_per_award: 50 };
-    m.innerHTML = `<form class="card form" id="f"><div><label>المتعلم</label><div id="pk"></div></div>
-      <div class="two"><div><label for="ty">نوع التعزيز</label><select id="ty" required>${T.map((t) => `<option value="${t.id}" data-p="${t.default_points}">${esc(t.name_ar)}</option>`).join("")}</select></div>
-      <div><label for="pt">النقاط (اتركها 0 لتعزيز بلا نقاط)</label><input id="pt" type="number" min="0" max="${S.max_points_per_award}" value="${T[0]?.default_points || 0}"></div></div>
-      <div><label for="ds">وصف مختصر للموقف</label><textarea id="ds" maxlength="500"></textarea></div>
-      <div><label for="fl">مرفق (صورة أو PDF، اختياري)</label><input id="fl" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></div>
-      <p class="err" id="er" role="alert"></p><div class="acts"><button class="btn" id="go">حفظ التعزيز</button></div>
-      <p class="sub">يُحفظ مباشرة دون اعتماد، ويُسجَّل التاريخ تلقائياً، ويُضاف إلى سجل المتعلم ودفتر النقاط عند وجود نقاط.</p></form>
-      <h3 class="sec">آخر ما سجّلتُه</h3><div id="rc"></div>`;
-    pickerField($("#pk"), st, "s");
-    $("#ty").onchange = (e) => { $("#pt").value = e.target.selectedOptions[0].dataset.p || 0; };
-    const loadRec = async () => { const r = await rpc("qm_reinforcements_list", { p_mine: true, p_limit: 8 }); $("#rc").innerHTML = r.length ? r.map(reinfItem).join("") : '<p class="sub">لم تسجّل تعزيزات بعد.</p>'; bindVoid($("#rc"), loadRec); };
-    $("#f").onsubmit = async (ev) => { ev.preventDefault(); const er = $("#er"), go = $("#go"); er.textContent = "";
-      if (!st.s) { er.textContent = "اختر المتعلم أولاً."; return; } go.disabled = true;
-      try { const path = await uploadFile($("#fl").files[0], c.uid);
-        await rpc("qm_give_reinforcement", { p_student: st.s.id, p_type: $("#ty").value, p_description: $("#ds").value, p_points: +$("#pt").value || 0, p_attachment: path });
-        toast("تم حفظ التعزيز"); st.s = null; pickerField($("#pk"), st, "s"); $("#ds").value = ""; $("#fl").value = ""; await loadRec();
-      } catch (e) { er.textContent = mapErr(e); } go.disabled = false; };
+    const [T, F, BQ, SQ] = await Promise.all([types("qm_reinforcement_types"), rpc("qm_pub_filters"),
+      sb.from("qm_badges").select("id,name_ar,criteria,points,kind,icon,image_path").eq("is_active", true).order("sort_order"), sb.from("qm_settings").select("max_points_per_award").single()]);
+    const B = (BQ.data || []).map((b) => ({ ...b, image: b.image_path })), maxP = SQ.data?.max_points_per_award || 50;
+    const st = { grade: "", section: "", rows: [], sel: new Set() };
+    m.innerHTML = `<div class="card gr-steps"><div class="gr-step"><span>المرحلة</span><div class="gr-chips"><button type="button" aria-pressed="true">المتوسطة</button></div></div>
+        <div class="gr-step"><span>الصف</span><div class="gr-chips" id="gG">${F.grades.map((g) => `<button type="button" data-g="${esc(g.code)}" aria-pressed="false">${esc(g.name)}</button>`).join("")}</div></div>
+        <div class="gr-step" id="gSw" hidden><span>الفصل</span><div class="gr-chips" id="gS"></div></div>
+        <div class="acts"><button class="btn sec" id="one" type="button">${ico("search")}منح متعلم واحد بالبحث عن اسمه</button></div></div>
+      <div id="ro" class="mt">${empty("users", "اختر الصف ثم الفصل", "تظهر أسماء متعلمي الفصل، وبجوار كل اسم زر النقاط وزر الوسام.")}</div>
+      <h3 class="sec">آخر ما منحتُه من نقاط</h3><div id="rc"></div>`;
+    const loadRec = async () => { const r = await rpc("qm_reinforcements_list", { p_mine: true, p_limit: 8 }); $("#rc").innerHTML = r.length ? r.map(reinfItem).join("") : '<p class="sub">لم تمنح نقاطاً بعد.</p>'; bindVoid($("#rc"), async () => { await loadRec(); await loadRoster(); }, c); };
+
+    // نافذة المنح: تبويب للنقاط وتبويب للوسام، لمتعلم واحد أو لمجموعة
+    const grant = (studs, kind) => {
+      let k = kind || "points", ref = { points: T[0]?.id || "", badge: "" };
+      const md = modal("", true);
+      const paint = () => {
+        const one = studs.length === 1;
+        md.el.innerHTML = `<div class="row2"><div><h3 style="margin:0">${one ? "منح " + esc(studs[0].name) : "منح " + studs.length + " متعلماً"}</h3><p class="sub">${one ? klass(studs[0]) : "يُمنح الجميع الشيء نفسه دفعة واحدة."}</p></div><button class="btn sm sec" data-x type="button">إغلاق</button></div>
+          ${one ? "" : `<div class="gr-who">${studs.map((s) => `<span>${esc(shortName(s.name))}</span>`).join("")}</div>`}
+          <div class="tabs"><button type="button" data-k="points" class="${k === "points" ? "on" : ""}">${ico("star")} نقاط</button><button type="button" data-k="badge" class="${k === "badge" ? "on" : ""}">${ico("medal")} وسام</button></div>
+          ${k === "points" ? `<label>سبب المنح</label><div class="gr-opts">${T.map((t) => `<button type="button" class="gr-opt" data-r="${t.id}" data-p="${t.default_points}" aria-pressed="${t.id === ref.points}"><b>${esc(t.name_ar)}</b><span class="pp">${t.default_points ? "<bdi>+" + t.default_points + "</bdi>" : "بلا نقاط"}</span></button>`).join("")}</div>
+            <div class="two"><div><label for="gp">عدد النقاط (حتى ${maxP})</label><input id="gp" type="number" min="0" max="${maxP}" value="${T.find((t) => t.id === ref.points)?.default_points ?? 0}"></div><div><label for="gn">ملاحظة (اختياري)</label><input id="gn" maxlength="300"></div></div>`
+          : (B.length ? `<label>الوسام</label><div class="gr-opts">${B.map((b) => `<button type="button" class="gr-opt" data-r="${b.id}" aria-pressed="${b.id === ref.badge}">${medal(b, "sm")}<b>${esc(b.name_ar)}</b><span class="pp">${b.points ? "<bdi>+" + b.points + "</bdi> نقطة" : "بلا نقاط"}</span><small>${KIND[b.kind] || ""}</small></button>`).join("")}</div>
+            <p class="sub" id="gc"></p><label for="gn">سبب المنح (اختياري)</label><input id="gn" maxlength="300">` : `<p class="sub">لا أوسمة فعّالة. يضيفها مدير النظام من الإدارة ← الأوسمة.</p>`)}
+          <p class="err" id="ge" role="alert"></p><div class="acts mt"><button class="btn" id="go" type="button">${k === "points" ? "منح النقاط" : "منح الوسام"}</button></div>`;
+        $("[data-x]", md.el).onclick = md.close;
+        $$("[data-k]", md.el).forEach((b) => (b.onclick = () => { k = b.dataset.k; paint(); }));
+        const crit = () => { const g = $("#gc", md.el), b = B.find((x) => x.id === ref.badge); if (g) g.textContent = b?.criteria ? "سبب الاستحقاق: " + b.criteria : ""; };
+        $$(".gr-opt", md.el).forEach((b) => (b.onclick = () => { ref[k] = b.dataset.r; $$(".gr-opt", md.el).forEach((x) => x.setAttribute("aria-pressed", x === b)); if (k === "points") $("#gp", md.el).value = b.dataset.p || 0; else crit(); }));
+        crit();
+        $("#go", md.el).onclick = async () => {
+          const er = $("#ge", md.el), go = $("#go", md.el); er.textContent = "";
+          if (!ref[k]) { er.textContent = k === "points" ? "اختر سبب المنح." : "اختر الوسام."; return; }
+          go.disabled = true;
+          try {
+            const R = await rpc("qm_grant_bulk", { p_students: studs.map((s) => s.id), p_kind: k, p_ref: ref[k], p_points: k === "points" ? +$("#gp", md.el).value || 0 : 0, p_note: $("#gn", md.el)?.value || null });
+            md.close();
+            const sk = R.skipped.length, why = k === "badge" ? "يحملون الوسام من قبل" : "مُنحوا السبب نفسه قبل قليل";
+            toast(R.ok ? `${k === "points" ? "مُنحت النقاط" : "مُنح الوسام"} لـ ${R.ok} متعلماً${sk ? `، وتُجوِّز ${sk} (${why})` : ""}` : `لم يُمنح أحد: ${why}.`, !R.ok);
+            st.sel.clear(); await Promise.all([loadRoster(), loadRec()]);
+          } catch (e) { er.textContent = mapErr(e); go.disabled = false; }
+        };
+      };
+      paint();
+    };
+
+    const drawRoster = () => {
+      const ro = $("#ro");
+      if (!st.section) { ro.innerHTML = empty("users", st.grade ? "اختر الفصل" : "اختر الصف ثم الفصل", "تظهر أسماء متعلمي الفصل، وبجوار كل اسم زر النقاط وزر الوسام."); return; }
+      if (!st.rows.length) { ro.innerHTML = empty("users", "لا متعلمين في هذا الفصل"); return; }
+      const n = st.sel.size, all = n === st.rows.length;
+      ro.innerHTML = `<div class="card gr-list"><div class="gr-bar"><label><input type="checkbox" id="all" ${all ? "checked" : ""}>تحديد الكل</label><span class="sub" style="margin:0">${n ? "المحدد: " + n : st.rows.length + " متعلماً"}</span><span class="sp"></span>
+          <button class="btn sm" id="bp" type="button" ${n ? "" : "disabled"}>${ico("star")}نقاط للمحددين</button><button class="btn sm sec" id="bb" type="button" ${n ? "" : "disabled"}>${ico("medal")}وسام للمحددين</button></div>
+        ${st.rows.map((s) => `<div class="gr-row${st.sel.has(s.id) ? " sel" : ""}" data-id="${s.id}"><input type="checkbox" aria-label="تحديد ${esc(s.name)}" ${st.sel.has(s.id) ? "checked" : ""}><div class="nm"><b>${esc(s.name)}</b><small>${s.badges.length ? s.badges.length + " وسام، " : ""}هذا الشهر ${s.month} نقطة</small></div><div class="bal">${s.balance}<small>الرصيد</small></div>
+          <div class="gr-acts"><button class="gr-ib" type="button" data-a="points" title="منح نقاط" aria-label="منح نقاط لـ ${esc(s.name)}">${ico("star")}</button><button class="gr-ib gold" type="button" data-a="badge" title="منح وسام" aria-label="منح وسام لـ ${esc(s.name)}">${ico("medal")}</button></div></div>`).join("")}</div>`;
+      const picked = () => st.rows.filter((s) => st.sel.has(s.id));
+      $("#all").onchange = (e) => { st.sel = new Set(e.target.checked ? st.rows.map((s) => s.id) : []); drawRoster(); };
+      $("#bp").onclick = () => grant(picked(), "points"); $("#bb").onclick = () => grant(picked(), "badge");
+      $$(".gr-row", ro).forEach((row) => { const id = row.dataset.id, s = st.rows.find((x) => x.id === id);
+        const tog = () => { st.sel.has(id) ? st.sel.delete(id) : st.sel.add(id); drawRoster(); };
+        $("input", row).onchange = tog; $(".nm", row).onclick = tog;
+        $$("[data-a]", row).forEach((b) => (b.onclick = () => grant([s], b.dataset.a))); });
+    };
+    const loadRoster = async () => { if (!st.section) return drawRoster(); try { st.rows = await rpc("qm_section_roster", { p_section: st.section }); st.sel = new Set([...st.sel].filter((id) => st.rows.some((s) => s.id === id))); drawRoster(); } catch (e) { $("#ro").innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; } };
+    const drawSecs = () => { const S = F.sections.filter((s) => s.grade === st.grade); $("#gSw").hidden = !st.grade;
+      $("#gS").innerHTML = S.length ? S.map((s) => `<button type="button" data-s="${s.id}" aria-pressed="${s.id === st.section}">${esc(s.name)}</button>`).join("") : '<span class="sub">لا فصول لهذا الصف.</span>';
+      $$("#gS button").forEach((b) => (b.onclick = () => { st.section = b.dataset.s; st.sel.clear(); $$("#gS button").forEach((x) => x.setAttribute("aria-pressed", x === b)); $("#ro").innerHTML = '<p class="sub">جارٍ التحميل…</p>'; loadRoster(); })); };
+    $$("#gG button").forEach((b) => (b.onclick = () => { st.grade = b.dataset.g; st.section = ""; st.rows = []; st.sel.clear(); $$("#gG button").forEach((x) => x.setAttribute("aria-pressed", x === b)); drawSecs(); drawRoster(); }));
+    $("#one").onclick = () => { const md = modal(`<div class="row2"><h3 style="margin:0">منح متعلم واحد</h3><button class="btn sm sec" data-x type="button">إغلاق</button></div><p class="sub">اكتب جزءاً من اسم المتعلم ثم اختره.</p><div id="opk" style="min-height:230px"></div>`);
+      $("[data-x]", md.el).onclick = md.close; studentPicker($("#opk", md.el), (s) => { md.close(); grant([s], "points"); }); $("input", md.el).focus(); };
     await loadRec();
   }),
 
@@ -167,6 +219,48 @@ async function crud(root, table, cols, add) {
       const { error } = await sb.from(table).insert(o); if (error) { $("#ae", root).textContent = mapErr(error); return; } toast("تمت الإضافة"); draw(); };
   }; await draw();
 }
+// إعدادات الأوسمة: الاسم، سبب الاستحقاق، النقاط، النوع (تعليمي/عام)، وصورة يرفعها مدير النظام
+async function badgeAdmin(root) {
+  const draw = async () => {
+    const { data: rows, error } = await sb.from("qm_badges").select("*").order("sort_order");
+    if (error) { root.innerHTML = `<p class="err">${esc(mapErr(error))}</p>`; return; }
+    root.innerHTML = `<div class="row2"><p class="sub" style="margin:0">لكل وسام سبب استحقاق ونقاط تُضاف إلى رصيد المتعلم عند منحه، ونوع يحدد تصنيفه في ملف المتعلم.</p><button class="btn" id="nb" type="button">${ico("plus")}إضافة وسام</button></div>
+      ${rows.length ? `<div class="bd-g">${rows.map((b) => `<div class="bd-c${b.is_active ? "" : " off"}"><div class="hd">${medal({ ...b, image: b.image_path })}<div><b>${esc(b.name_ar)}</b><span class="badge ${b.kind === "educational" ? "info" : ""}">وسام ${KIND[b.kind]}</span> <span class="pts">${b.points ? "<bdi>+" + b.points + "</bdi> نقطة" : "بلا نقاط"}</span></div></div>
+        <p><small>سبب الاستحقاق:</small> ${esc(b.criteria || "لم يُكتب بعد")}</p>${b.is_active ? "" : '<span class="badge">موقوف</span>'}<div class="acts"><button class="btn sm sec" data-e="${b.id}" type="button">تعديل</button></div></div>`).join("")}</div>` : empty("trophy", "لا أوسمة بعد", "أضف أول وسام ليتمكن المعلمون من منحه.")}`;
+    $("#nb", root).onclick = () => form(null, rows.length);
+    $$("[data-e]", root).forEach((x) => (x.onclick = () => form(rows.find((r) => r.id === x.dataset.e))));
+  };
+  const form = (b, n) => {
+    const v = b || { name_ar: "", criteria: "", points: 0, kind: "general", is_active: true, image_path: null, icon: "trophy" };
+    const md = modal(`<h3>${b ? "تعديل الوسام" : "إضافة وسام"}</h3><form id="bf">
+      <label for="b_n">اسم الوسام</label><input id="b_n" required maxlength="80" value="${esc(v.name_ar)}">
+      <div class="two"><div><label for="b_k">نوع الوسام</label><select id="b_k"><option value="educational">تعليمي</option><option value="general">عام</option></select></div><div><label for="b_p">نقاط الوسام</label><input id="b_p" type="number" min="0" max="1000" value="${v.points}"></div></div>
+      <label for="b_c">سبب استحقاق الوسام</label><textarea id="b_c" maxlength="400" placeholder="مثال: حفظ جزء كامل، أو المحافظة على الانضباط شهراً كاملاً">${esc(v.criteria || "")}</textarea>
+      <label for="b_f">صورة الوسام (PNG أو JPG أو WebP، حتى 2 ميجابايت)</label><div class="bd-pv"><span id="b_v">${medal({ ...v, image: v.image_path }, "lg")}</span><div><input id="b_f" type="file" accept="image/png,image/jpeg,image/webp">${v.image_path ? '<label class="ck"><input type="checkbox" id="b_rm"> حذف الصورة والعودة للأيقونة</label>' : ""}</div></div>
+      ${b ? `<label class="ck"><input type="checkbox" id="b_a" ${v.is_active ? "checked" : ""}> فعّال (يظهر للمعلمين عند المنح)</label>` : ""}
+      <p class="err" id="b_e" role="alert"></p><div class="acts mt"><button class="btn" id="b_s">حفظ الوسام</button><button class="btn sec" type="button" id="b_x">رجوع</button></div></form>`);
+    $("#b_k", md.el).value = v.kind; $("#b_x", md.el).onclick = md.close;
+    $("#b_f", md.el).onchange = (e) => { const f = e.target.files[0]; if (!f) return; const u = URL.createObjectURL(f); $("#b_v", md.el).innerHTML = `<span class="mdl lg" data-k="${esc($("#b_k", md.el).value)}"><img src="${u}" alt=""></span>`; };
+    $("#bf", md.el).onsubmit = async (ev) => { ev.preventDefault(); const er = $("#b_e", md.el), btn = $("#b_s", md.el); er.textContent = ""; btn.disabled = true;
+      try {
+        const f = $("#b_f", md.el).files[0]; let path = v.image_path;
+        if (f) {
+          if (f.size > 2 * 1024 * 1024) throw new Error("حجم الصورة يتجاوز 2 ميجابايت.");
+          if (!/^image\/(png|jpeg|webp)$/.test(f.type)) throw new Error("الأنواع المسموحة: PNG أو JPG أو WebP.");
+          path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${f.type.split("/")[1].replace("jpeg", "jpg")}`;
+          const up = await sb.storage.from("qm-badges").upload(path, f, { contentType: f.type, cacheControl: "31536000" });
+          if (up.error) throw new Error("تعذر رفع الصورة. تأكد من أنك مدير النظام ثم أعد المحاولة.");
+        } else if ($("#b_rm", md.el)?.checked) path = null;
+        const o = { name_ar: $("#b_n", md.el).value.trim(), kind: $("#b_k", md.el).value, points: Math.max(0, +$("#b_p", md.el).value || 0), criteria: $("#b_c", md.el).value.trim() || null, image_path: path };
+        if (b) o.is_active = $("#b_a", md.el).checked; else o.sort_order = (n || 0) + 1;
+        const q = b ? await sb.from("qm_badges").update(o).eq("id", b.id) : await sb.from("qm_badges").insert(o);
+        if (q.error) throw new Error(mapErr(q.error));
+        if (path !== v.image_path && v.image_path) sb.storage.from("qm-badges").remove([v.image_path]).catch(() => {});
+        md.close(); toast("حُفظ الوسام"); draw();
+      } catch (e) { er.textContent = mapErr(e); btn.disabled = false; } };
+  };
+  await draw();
+}
 PAGES.admin = () => boot("admin.html", async (m, c) => {
   const TABS = [["roles", "الأدوار"], ["types", "أنواع التعزيز"], ["badges", "الأوسمة"], ["cats", "تصنيفات السلوك"], ["stat", "حالات الواقعة"], ["set", "الإعدادات العامة"], ["audit", "سجل العمليات"]];
   let cur = new URLSearchParams(location.search).get("t") || "roles";
@@ -179,7 +273,7 @@ PAGES.admin = () => boot("admin.html", async (m, c) => {
         body.innerHTML = `<p class="sub">المعلم هو أي منسوب فعّال في النواة. عيّن هنا وكيل شؤون الطلاب والموجه الطلابي. الوكيل هو من يستقبل الوقائع من المعلمين.</p><div style="overflow:auto"><table class="tbl"><thead><tr><th>المنسوب</th><th>الوظيفة في النواة</th><th>وكيل شؤون الطلاب</th><th>الموجه الطلابي</th></tr></thead><tbody>${S.map((s) => `<tr><td>${esc(s.name)}</td><td><small>${esc(s.job || "")}</small></td>${["agent", "counselor"].map((r) => `<td><label class="tgl"><input type="checkbox" data-s="${s.id}" data-r="${r}" ${s["is_" + r] ? "checked" : ""} aria-label="${r}"><span></span></label></td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
         $$("[data-s]", body).forEach((el) => (el.onchange = async () => { try { await rpc("qm_set_role", { p_staff: el.dataset.s, p_role: el.dataset.r, p_on: el.checked }); toast("تم الحفظ"); } catch (e) { toast(mapErr(e), true); el.checked = !el.checked; } }));
       } else if (cur === "types") await crud(body, "qm_reinforcement_types", [{ k: "name_ar", l: "الاسم" }, { k: "domain", l: "المجال", t: "select", o: [["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"], ["general", "عام"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "الاسم", req: 1 }, { k: "domain", l: "المجال", t: "select", o: [["general", "عام"], ["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }]);
-      else if (cur === "badges") await crud(body, "qm_badges", [{ k: "name_ar", l: "الاسم" }, { k: "description", l: "الوصف" }, { k: "criteria", l: "شروط الاستحقاق" }, { k: "icon", l: "الأيقونة" }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "اسم الوسام", req: 1 }, { k: "description", l: "الوصف" }, { k: "criteria", l: "شروط الاستحقاق" }, { k: "icon", l: "الأيقونة (trophy, star, users, up, chart)" }]);
+      else if (cur === "badges") await badgeAdmin(body);
       else if (cur === "cats") await crud(body, "qm_behavior_categories", [{ k: "name_ar", l: "التصنيف" }, { k: "kind", l: "النوع", t: "select", o: kinds }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "التصنيف", req: 1 }, { k: "kind", l: "النوع", t: "select", o: kinds }]);
       else if (cur === "stat") body.innerHTML = '<p class="sub">حالات الواقعة المسموح بها تحدد مسار الإجراءات في النظام. يمكن تعديل الاسم واللون والترتيب. الرموز البرمجية (code) ثابتة، وتغيير مسار الانتقال بين الحالات يحتاج تعديلاً برمجياً معتمداً.</p><div id="sc"></div>', await crud($("#sc", body), "qm_incident_statuses", [{ k: "code", l: "الرمز", ro: 1 }, { k: "name_ar", l: "الاسم" }, { k: "tone", l: "اللون", t: "select", o: [["ok", "أخضر: مكتمل"], ["info", "أزرق: قيد المعالجة"], ["warn", "برتقالي: يحتاج إجراء"], ["bad", "أحمر: تنبيه"], ["mute", "رمادي: غير نشط"]] }, { k: "sort_order", l: "الترتيب", t: "number" }], [{ k: "code", l: "الرمز (حروف إنجليزية)", req: 1 }, { k: "name_ar", l: "الاسم", req: 1 }]);
       else if (cur === "set") {

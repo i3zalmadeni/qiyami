@@ -1,38 +1,35 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>لوحة الصدارة – قيمي</title><meta name="description" content="أعلى المتعلمين نقاطاً في المدرسة والصف والفصل"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/qm.css"><link rel="stylesheet" href="assets/about.css"></head><body class="pubsite">
+<title>ملفات المتعلمين – قيمي</title><meta name="description" content="ملفات المتعلمين في متوسطة لبيد بن ربيعة: النقاط والأوسمة ومن منحها"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/qm.css"><link rel="stylesheet" href="assets/about.css"><link rel="stylesheet" href="assets/honor.css"></head><body class="pubsite">
 <div id="hdr"></div>
-<section class="hero3 slim"><div class="h3g"><div class="h3t"><span class="h3pill"><span class="tg" data-ico="users"></span>ملفات الطلاب · متوسطة لبيد</span><h1><em>ملفات</em> المتعلمين</h1><p class="h3p">تصفّح ملفات المتعلمين حسب المرحلة والصف، وافتح الملف الشخصي لترى نقاطه ومن أين حصل عليها.</p></div></div></section>
-<section class="sct"><div class="wrap" id="pf"><p class="sub">جارٍ التحميل…</p></div></section><div id="ftr"></div>
+<section class="hb-plaque slim"><div class="hb-head"><span class="hb-kick"><span data-ico="users"></span>ملفات المتعلمين</span><h1>سجل التكريم</h1><p>اختر الصف والفصل أو ابحث بالاسم، ثم افتح ملف المتعلم لترى أوسمته ونقاطه ومن منحها.</p></div></section>
+<main class="hb-wrap" id="pf" style="padding-bottom:40px"><p class="hb-empty">جارٍ التحميل…</p></main>
+<div id="ftr"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="assets/config.js"></script><script src="assets/chrome.js"></script><script src="assets/qm.js"></script><script src="assets/about-icons.js"></script>
 <script>
 pubInit("profiles.html");
 (async () => {
-  const root = document.getElementById("pf");
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { root.innerHTML = `<div class="card empty"><div class="big">${ico("lock")}</div><b>ملفات الطلاب لمنسوبي المدرسة</b><p class="sub">سجّل الدخول بحساب النواة لعرض الأسماء، حمايةً لخصوصية المتعلمين.</p><a class="btn" href="login.html?next=profiles.html">تسجيل الدخول</a></div>`; return; }
-  let F; try { F = await rpc("qm_leaderboard_filters"); } catch (e) { root.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; return; }
+  const root = document.getElementById("pf"), $i = (id) => document.getElementById(id);
+  let F; try { F = await rpc("qm_pub_filters"); } catch (e) { root.innerHTML = `<p class="hb-empty">تعذر التحميل. حدّث الصفحة بعد قليل.</p>`; return; }
   const st = { grade: "", section: "", q: "", page: 0 }, N = 48;
-  const ini = (n) => (n || "").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join(" ");
-  root.innerHTML = `<div class="card form lbc"><div class="grid2"><div><label>المرحلة</label><select id="sg"><option>المتوسطة</option></select></div><div><label>الصف</label><select id="gr"><option value="">كل الصفوف</option>${F.grades.map((g) => `<option value="${esc(g.code)}">${esc(g.name)}</option>`).join("")}</select></div><div><label>الفصل</label><select id="se"></select></div><div><label>بحث بالاسم</label><input id="q" placeholder="اكتب جزءاً من الاسم"></div></div></div><div id="rs" style="margin-top:16px"></div>`;
-  const $$ = (i) => document.getElementById(i);
-  const secs = () => { $$("se").innerHTML = `<option value="">كل الفصول</option>` + F.sections.filter((s) => !st.grade || s.grade === st.grade).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join(""); $$("se").value = st.section; };
+  root.innerHTML = `<div class="hb-panel hb-filters"><div><label for="sg">المرحلة</label><select id="sg"><option>المتوسطة</option></select></div><div><label for="gr">الصف</label><select id="gr"><option value="">كل الصفوف</option>${F.grades.map((g) => `<option value="${esc(g.code)}">${esc(g.name)}</option>`).join("")}</select></div><div><label for="se">الفصل</label><select id="se"></select></div><div><label for="q">بحث بالاسم</label><input id="q" type="search" placeholder="اكتب جزءاً من الاسم"></div></div><div id="rs"></div>`;
+  const secs = () => { $i("se").innerHTML = `<option value="">كل الفصول</option>` + F.sections.filter((s) => st.grade && s.grade === st.grade).map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join(""); $i("se").value = st.section; $i("se").disabled = !st.grade; };
   const load = async () => {
-    const out = $$("rs");
+    const out = $i("rs");
     try {
-      const D = await rpc("qm_students_directory", { p_grade: st.grade || null, p_section: st.section || null, p_q: st.q || null, p_limit: N, p_offset: st.page * N });
-      if (!D.rows.length) { out.innerHTML = empty("users", "لا متعلمين مطابقين"); return; }
+      const D = await rpc("qm_pub_directory", { p_grade: st.grade || null, p_section: st.section || null, p_q: st.q || null, p_limit: N, p_offset: st.page * N });
+      if (!D.rows.length) { out.innerHTML = `<div class="hb-panel" style="margin-top:22px"><p class="hb-empty">لا متعلمين مطابقين. جرّب اسماً آخر أو صفاً آخر.</p></div>`; return; }
       const pages = Math.ceil(D.total / N);
-      out.innerHTML = `<p class="sub">${D.total} متعلماً</p><div class="pf-g">${D.rows.map((x) => `<a class="pf-c" href="student.html?id=${x.id}"><span class="pf-av" aria-hidden="true">${esc(ini(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</small><span class="pf-p">${x.balance}<i>نقطة</i></span></a>`).join("")}</div>
-        ${pages > 1 ? `<div class="acts mt"><button class="btn sec" id="pv" ${st.page ? "" : "disabled"}>السابق</button><span class="sub">صفحة ${st.page + 1} من ${pages}</span><button class="btn sec" id="nx" ${st.page + 1 < pages ? "" : "disabled"}>التالي</button></div>` : ""}`;
-      const pv = $$("pv"), nx = $$("nx");
+      out.innerHTML = `<p class="hb-note">${D.total} متعلماً</p><div class="hb-dir">${D.rows.map((x) => `<a class="hb-st" href="student.html?id=${x.id}"><span class="hb-ini" aria-hidden="true">${esc(initials(x.name))}</span><span><b>${esc(x.name)}</b><small>${klass(x)}</small><span class="tags"><span>${ico("star")}${x.balance} نقطة</span>${x.badges ? `<span class="g">${ico("medal")}${x.badges} ${x.badges > 10 || x.badges < 3 ? "وسام" : "أوسمة"}</span>` : ""}</span></span></a>`).join("")}</div>
+        ${pages > 1 ? `<div class="hb-pager"><button class="btn sec" id="pv" ${st.page ? "" : "disabled"}>السابق</button><span class="sub">صفحة ${st.page + 1} من ${pages}</span><button class="btn sec" id="nx" ${st.page + 1 < pages ? "" : "disabled"}>التالي</button></div>` : ""}`;
+      const pv = $i("pv"), nx = $i("nx");
       if (pv) pv.onclick = () => { st.page--; load(); window.scrollTo(0, 0); };
       if (nx) nx.onclick = () => { st.page++; load(); window.scrollTo(0, 0); };
-    } catch (e) { out.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; }
+    } catch (e) { out.innerHTML = `<p class="hb-empty">${esc(mapErr(e))}</p>`; }
   };
-  $$("gr").onchange = (e) => { st.grade = e.target.value; st.section = ""; st.page = 0; secs(); load(); };
-  $$("se").onchange = (e) => { st.section = e.target.value; st.page = 0; load(); };
-  let t; $$("q").oninput = (e) => { clearTimeout(t); t = setTimeout(() => { st.q = e.target.value.trim(); st.page = 0; load(); }, 300); };
+  $i("gr").onchange = (e) => { st.grade = e.target.value; st.section = ""; st.page = 0; secs(); load(); };
+  $i("se").onchange = (e) => { st.section = e.target.value; st.page = 0; load(); };
+  let t; $i("q").oninput = (e) => { clearTimeout(t); t = setTimeout(() => { st.q = e.target.value.trim(); st.page = 0; load(); }, 300); };
   secs(); load();
 })();
 </script></body></html>

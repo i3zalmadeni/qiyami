@@ -31,6 +31,7 @@ const ERR = {
   student_required: "أضف متعلماً واحداً على الأقل.",
   date_future: "لا يمكن تسجيل واقعة بتاريخ مستقبلي.",
   already_void: "سبق إلغاء هذا التعزيز.",
+  too_many: "العدد كبير. امنح 60 متعلماً كحد أقصى في المرة الواحدة.",
 };
 const mapErr = (e) => { const m = e?.message || String(e); return ERR[m] || (/permission denied|row-level security/i.test(m) ? ERR.forbidden : m); };
 async function rpc(fn, args) {
@@ -48,7 +49,20 @@ function modal(html, wide) {
 }
 const empty = (icon, t, s) => `<div class="card empty"><div class="big">${ico(icon)}</div><b>${esc(t)}</b>${s ? `<p class="sub">${esc(s)}</p>` : ""}</div>`;
 const tbadge = (name, tone) => `<span class="badge ${tone === "mute" ? "" : tone || ""}">${esc(name)}</span>`;
-const pts = (n) => `<span class="pts ${n < 0 ? "neg" : ""}">${n > 0 ? "+" : ""}${n}</span>`;
+Object.assign(ICONS, {
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+  crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 10H5z"/><path d="M5 21h14"/>',
+  medal: '<circle cx="12" cy="15" r="5.5"/><path d="M8.5 10.5L5 3h5l2 4 2-4h5l-3.500 7.500"/><path d="M12 13l.9 1.800 2 .3-1.450 1.400.35 2L12 17.550l-1.800.950.35-2L9.100 15.100l2-.3z"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2.500"/><circle cx="9" cy="10" r="1.800"/><path d="M4 18l5.500-5 4 3.500 2.500-2 4 3.500"/>',
+});
+// ===== عناصر مشتركة للوحة الشرف: الأسماء والأوسمة =====
+const initials = (n) => (n || "").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join(" ");
+const shortName = (n) => { const p = (n || "").trim().split(/\s+/).filter((w) => w !== "بن"); return p.length > 2 ? p[0] + " " + p[p.length - 1] : p.join(" "); };
+const klass = (x) => esc(x.grade || "") + (x.section ? "، " + esc(x.section) : "");
+const badgeUrl = (path) => (path ? APP_CONFIG.supabaseUrl + "/storage/v1/object/public/qm-badges/" + path.split("/").map(encodeURIComponent).join("/") : "");
+const KIND = { educational: "تعليمي", general: "عام" };
+const medal = (b, cls) => `<span class="mdl ${cls || ""}" data-k="${esc(b.kind || "general")}">${b.image ? `<img src="${esc(badgeUrl(b.image))}" alt="" loading="lazy">` : ico(b.icon in ICONS ? b.icon : "trophy")}</span>`;
+const pts = (n) => `<span class="pts ${n < 0 ? "neg" : ""}"><bdi>${n > 0 ? "+" : ""}${n}</bdi></span>`;
 
 // ===== اختيار المتعلم: بحث سريع في طلاب النواة (لا نسخ لبياناتهم) =====
 function studentPicker(root, onPick, opts = {}) {
@@ -177,7 +191,7 @@ function bindIncidents(root, reload) {
 // r: all | agent | counselor | admin
 const NAV = [
   ["dashboard.html", "الرئيسية", "home", "ما يخصك الآن ومؤشرات الرعاية", "all"],
-  ["reinforce.html", "تسجيل تعزيز", "plus", "تعزيز مباشر دون اعتماد، بنقاط أو بدونها", "all"],
+  ["reinforce.html", "منح النقاط والأوسمة", "plus", "اختر الصف والفصل ثم امنح فردياً أو جماعياً", "all"],
   ["behavior.html", "تسجيل سلوك", "list", "موقف إيجابي أو واقعة تُحال إلى وكيل شؤون الطلاب", "all"],
   ["incidents.html", "وقائعي", "inbox", "الوقائع التي رفعتَها وحالتها", "all"],
   ["reinforcements.html", "سجل التعزيز", "calendar", "سجل التعزيزات ودفتر النقاط", "all"],
@@ -239,8 +253,8 @@ async function boot(page, render, o = {}) {
 }
 
 async function awardBadge(studentId, done) {
-  const { data: B } = await sb.from("qm_badges").select("id,name_ar,description").eq("is_active", true).order("sort_order");
-  const md = modal(`<h3>منح وسام</h3><label>الوسام</label><select id="bd">${(B || []).map((b) => `<option value="${b.id}">${esc(b.name_ar)}</option>`).join("")}</select><label>سبب المنح (اختياري)</label><textarea id="bn" maxlength="300"></textarea><p class="err" id="be"></p><div class="acts mt"><button class="btn" id="ok">منح</button><button class="btn sec" id="no">رجوع</button></div>`);
+  const { data: B } = await sb.from("qm_badges").select("id,name_ar,points").eq("is_active", true).order("sort_order");
+  const md = modal(`<h3>منح وسام</h3><label>الوسام</label><select id="bd">${(B || []).map((b) => `<option value="${b.id}">${esc(b.name_ar)}${b.points ? " (+" + b.points + ")" : ""}</option>`).join("")}</select><label>سبب المنح (اختياري)</label><textarea id="bn" maxlength="300"></textarea><p class="err" id="be"></p><div class="acts mt"><button class="btn" id="ok">منح</button><button class="btn sec" id="no">رجوع</button></div>`);
   $("#no", md.el).onclick = md.close;
   $("#ok", md.el).onclick = async () => { try { await rpc("qm_award_badge", { p_student: studentId, p_badge: $("#bd", md.el).value, p_note: $("#bn", md.el).value }); md.close(); toast("تم منح الوسام"); done && done(); } catch (e) { $("#be", md.el).textContent = mapErr(e); } };
 }
