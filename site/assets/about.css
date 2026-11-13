@@ -125,7 +125,7 @@
 .ax-rv[data-rv="zoom"]{transform:scale(.86);filter:blur(6px)}
 .ax-rv[data-rv="flip"]{transform:perspective(900px) rotateX(18deg) translateY(30px)}
 .ax-rv.in{opacity:1;transform:none;filter:none}
-.ax-rv.dn{transition:transform .25s,box-shadow .3s,border-color .3s,background .3s;transition-delay:0s;will-change:auto}
+.ax-rv.ax-done{transition:transform .25s,box-shadow .3s,border-color .3s,background .3s;transition-delay:0s;will-change:auto}
 .ax-in{animation:axIn .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
 @keyframes axIn{0%{opacity:0;transform:translateY(18px)}30%{opacity:1}100%{opacity:1;transform:none}}
 .ax-hero{position:relative;overflow:hidden;min-height:min(78vh,640px);display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);align-items:center;gap:30px;padding:56px 48px 70px;border-radius:34px;color:#fff;background:var(--hv);background-size:200% 200%;animation:hvshift 18s ease-in-out infinite alternate;box-shadow:0 30px 60px rgba(12,111,130,.28)}

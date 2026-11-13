@@ -294,12 +294,28 @@ async function boot(page, render, o = {}) {
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
-     <div class="dnav"><div class="wrap dn"><div class="dnav-in">${items.map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
+     <div class="dnav"><div class="wrap dn"><button type="button" class="dm-b" id="dmB" aria-haspopup="dialog" aria-expanded="false" aria-controls="dm">${ico("menu")}<span>${esc(cur[1])}</span></button><div class="dnav-in">${items.map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
      <div class="dwho"><div class="ntf"><button type="button" class="ntf-b" id="ntfB" aria-label="الإشعارات" aria-expanded="false" aria-haspopup="true">${ico("bell")}<span class="ntf-n" id="ntfN" hidden></span></button><div class="ntf-p" id="ntfP" hidden><div class="ntf-h"><b>الإشعارات</b><button type="button" id="ntfR">تحديد الكل كمقروء</button></div><div id="ntfL"><p class="sub" style="margin:14px">جارٍ التحميل…</p></div></div></div><span class="dname">${esc(who.name)}</span><a class="loginbtn" href="#" id="out">خروج</a></div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <main class="wrap" id="main"></main>${footerHTML}`;
   bindNav();
+  // القائمة الجانبية للجوال: كل صفحات المستخدم، والصفحات الفرعية للصفحة الحالية تحتها
+  document.body.insertAdjacentHTML("beforeend", `<div class="dm" id="dm" hidden><div class="dm-bg" data-dmx></div><aside class="dm-p" role="dialog" aria-modal="true" aria-label="القائمة">
+    <div class="dm-h"><div><b>${esc(ctx.who.name || "")}</b><small>${esc(ctx.role)}</small></div><button type="button" class="dm-x" data-dmx aria-label="إغلاق القائمة">${ico("x")}</button></div>
+    <nav class="dm-n">${items.map(([h, n, e, t]) => `<a href="${h}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}<span>${n}<small>${esc(t)}</small></span></a>${h === page && hub ? `<div class="dm-s">${hub.tabs.map(([k, sn, si]) => `<a href="${hub.page}?tab=${k}" data-dmtab="${k}">${ico(si)}${sn}</a>`).join("")}</div>` : ""}`).join("")}</nav>
+    <div class="dm-f"><a href="index.html">${ico("home")}الموقع الإلكتروني</a><a href="${esc(window.CORE_URL || "#")}">${ico("grid")}النواة الرقمية</a><button type="button" id="dmOut">${ico("logout")}تسجيل الخروج</button></div></aside></div>`);
+  { const dm = $("#dm"), btn = $("#dmB");
+    const open = () => { dm.hidden = false; requestAnimationFrame(() => dm.classList.add("open")); btn.setAttribute("aria-expanded", "true"); document.documentElement.style.overflow = "hidden"; $(".dm-x", dm).focus(); };
+    const close = () => { dm.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); document.documentElement.style.overflow = ""; setTimeout(() => (dm.hidden = true), 250); btn.focus(); };
+    btn.onclick = open; $$("[data-dmx]", dm).forEach((x) => (x.onclick = close));
+    // إذا لم تتسع عناصر القائمة العلوية لعرض الشاشة تتحول إلى زر القائمة الجانبية
+    const bar = $(".dnav"), inn = $(".dnav-in"), fit = () => { bar.classList.remove("compact", "tight"); const over = () => inn.scrollWidth > inn.clientWidth + 2; if (over()) { bar.classList.add("tight"); if (over()) { bar.classList.remove("tight"); bar.classList.add("compact"); } } };
+    fit(); addEventListener("resize", fit); document.fonts?.ready.then(fit);
+    dm.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+    $("#dmOut").onclick = () => doLogout();
+    $$("[data-dmtab]", dm).forEach((a) => a.addEventListener("click", (e) => { const s = document.querySelector(`.subnav a[data-tab="${a.dataset.dmtab}"]`); if (s) { e.preventDefault(); close(); s.click(); } }));
+  }
   $("#pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-nu-latn", { hour: "numeric", minute: "2-digit", timeZone: TZ });
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
@@ -321,7 +337,8 @@ async function boot(page, render, o = {}) {
     main.classList.add("hubmain");
     const links = $$(".subnav a");
     const mark = () => { const t = hub.tabs.find((x) => x[0] === hub.tab);
-      links.forEach((a) => { const on = a.dataset.tab === hub.tab; a.classList.toggle("on", on); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); if (on) a.scrollIntoView({ block: "nearest", inline: "nearest" }); });
+      links.forEach((a) => { const on = a.dataset.tab === hub.tab; a.classList.toggle("on", on); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); if (on) { const sn = a.parentElement; sn.scrollLeft += a.getBoundingClientRect().left - sn.getBoundingClientRect().left - (sn.clientWidth - a.offsetWidth) / 2; } });
+      $$("[data-dmtab]").forEach((a) => { const on = a.dataset.dmtab === hub.tab; a.classList.toggle("on", on); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); });
       $(".pb-d").textContent = t[3]; document.title = t[1] + " – " + cur[1] + " – قيمي"; };
     hub.go = async (fn) => { hub.busy = true; main.innerHTML = ""; mark(); await draw(fn); hub.busy = false; };
     links.forEach((a) => (a.onclick = (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); if (hub.busy || a.dataset.tab === hub.tab) return;
