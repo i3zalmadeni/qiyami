@@ -442,3 +442,4 @@ header.dash .idl .moe{padding-inline-start:14px}
 }
 .pubsite header .bm small{white-space:nowrap}
 @media (max-width:1180px){.pubsite header .hid .moe{display:none}}
+.mdl[data-k="administrative"]{--ring:#17414f;background:radial-gradient(circle at 30% 25%,#7fb4c0,#2f7388 55%,#17414f)}

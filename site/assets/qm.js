@@ -60,7 +60,8 @@ const initials = (n) => (n || "").trim().split(/\s+/).slice(0, 2).map((w) => w[0
 const shortName = (n) => { const p = (n || "").trim().split(/\s+/).filter((w) => w !== "بن"); return p.length > 2 ? p[0] + " " + p[p.length - 1] : p.join(" "); };
 const klass = (x) => esc(x.grade || "") + (x.section ? "، " + esc(x.section) : "");
 const badgeUrl = (path) => (path ? APP_CONFIG.supabaseUrl + "/storage/v1/object/public/qm-badges/" + path.split("/").map(encodeURIComponent).join("/") : "");
-const KIND = { educational: "تعليمي", general: "عام" };
+const KIND = { educational: "تعليمي", administrative: "إداري", general: "عام" };
+const DOMAIN = { academic: "جانب أكاديمي", behavior: "جانب سلوكي", participation: "المشاركة", leadership: "القيادة والمبادرة", general: "عام" };
 const medal = (b, cls) => `<span class="mdl ${cls || ""}" data-k="${esc(b.kind || "general")}">${b.image ? `<img src="${esc(badgeUrl(b.image))}" alt="" loading="lazy">` : ico(b.icon in ICONS ? b.icon : "trophy")}</span>`;
 const pts = (n) => `<span class="pts ${n < 0 ? "neg" : ""}"><bdi>${n > 0 ? "+" : ""}${n}</bdi></span>`;
 
