@@ -320,7 +320,7 @@ async function boot(page, render, o = {}) {
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات من جدول qm_notifications (توجَّه للمعنيين فقط)، والمقروء يُحفظ في القاعدة
-  ubMount({ key: "qm", uid: who.staff_id || who.id, markAll: () => rpc("qm_notifications_read"), load: async () => {
+  ubMount({ key: "qm", uid: who.staff_id || who.id, allUrl: "inbox.html", markAll: () => rpc("qm_notifications_read"), load: async () => {
     const L = await rpc("qm_notifications_list", { p_limit: 20 });
     return (L || []).map((x) => ({ id: x.id, t: x.created_at, read: !!x.is_read, title: x.title, body: x.body, href: x.link || "#", icon: "star", tone: "info" }));
   } });
