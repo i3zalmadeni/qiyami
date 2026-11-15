@@ -232,12 +232,13 @@ const NAV = [
   ["dashboard.html", "مكتبي الإلكتروني", "grid", "مهامك ومتابعاتك وما يدور في المنصة الآن", "all"],
   ["positive.html", "السلوك الإيجابي", "medal", "منح النقاط والأوسمة وسجل التعزيز والأرصدة والإنجازات", "all"],
   ["negative.html", "السلوك السلبي", "flag", "تسجيل الوقائع السلوكية ومتابعة ما رفعتَه", "all"],
-  ["students.html", "دليل المتعلمين", "users", "بحث سريع وبطاقة المتعلم", "all"],
+  ["students.html", "دليل المتعلمين", "users", "كل المتعلمين بالفرز حسب المرحلة والصف والفصل، والدخول المباشر إلى ملف المتعلم", "all"],
   ["support.html", "المتابعة والدعم", "help", "حالات الدعم التربوي وخطط المتابعة", "support"],
   ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
   ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
   ["reports.html", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "report"],
-  ["admin.html", "الإدارة", "gear", "الأدوار والنقاط والأوسمة والتصنيفات والإعدادات", "admin"],
+  ["perms.html", "الصلاحيات", "key", "تعيين وكيل شؤون الطلاب والموجه الطلابي", "admin"],
+  ["admin.html", "إدارة البوابة", "gear", "النقاط والأوسمة والمستويات والتصنيفات والإعدادات وسجل العمليات", "admin"],
 ];
 // الصفحات المجمّعة: صفحة واحدة في القائمة تندرج تحتها صفحات فرعية (?tab=)
 const HUBS = {
@@ -253,7 +254,6 @@ const HUBS = {
     ["incidents", "وقائعي", "inbox", "الوقائع التي رفعتَها وحالتها"],
   ],
   "admin.html": [
-    ["roles", "الأدوار", "users", "تعيين وكيل شؤون الطلاب والموجه الطلابي"],
     ["points", "إدارة النقاط", "star", "إضافة نقاط المتعلم وتعديلها وحذفها"],
     ["types", "أنواع التعزيز", "list", "أنواع التعزيز ونقاطها المقترحة وطريقة استحقاقها"],
     ["badges", "الأوسمة", "medal", "الأوسمة وصورها ونقاطها وسبب استحقاقها"],
@@ -267,6 +267,7 @@ const HUBS = {
 const HUB_FN = { "admin.html": "adminTab" };
 function openHub(page) {
   const tabs = HUBS[page], qs = new URLSearchParams(location.search); let tab = qs.get("tab") || (page === "admin.html" ? qs.get("t") : null);
+  if (page === "admin.html" && tab === "roles") { location.replace("perms.html"); return; }   // الأدوار انتقلت إلى «الصلاحيات»
   if (!tabs.some((t) => t[0] === tab)) tab = tabs[0][0];
   const hub = (window.__hub = { page, tab, tabs }); hub.run = () => (PAGES[hub.tab] || PAGES[HUB_FN[page]])(); hub.run();
 }

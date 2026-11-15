@@ -36,7 +36,7 @@ const PAGES = {
     if (c.isCounselor) QA.push(["counselor.html", "help", "الحالات الإجرائية", "المحالة إليك"]);
     if (sup) QA.push(["support.html", "help", "المتابعة والدعم", "حالات الدعم التربوي"]);
     if (c.isAdmin || sup) QA.push(["reports.html", "chart", "التقارير", "مؤشرات الفترة"]);
-    if (c.isAdmin) QA.push(["admin.html", "gear", "الإدارة", "الأدوار والإعدادات"]);
+    if (c.isAdmin) QA.push(["perms.html", "key", "الصلاحيات", "الوكيل والموجه الطلابي"], ["admin.html", "gear", "إدارة البوابة", "النقاط والأوسمة والإعدادات"]);
     // آخر ما جرى: تُجمع عمليات المنح الجماعي (المانح والنوع والوقت نفسه) في سطر واحد
     const ev = [];
     (H.last_points || []).forEach((p) => { const k = ev.find((e) => e.k === "p" && e.at === p.at && e.by === p.by && e.type === p.type && e.points === p.points); if (k) k.n++; else ev.push({ k: "p", n: 1, ...p }); });
@@ -215,10 +215,59 @@ const PAGES = {
     $("#q").oninput = () => { clearTimeout(t); t = setTimeout(draw, 250); }; await draw();
   }),
 
+  // دليل المتعلمين: كل المتعلمين معروضين، والفرز بالمرحلة ثم الصف ثم الفصل، والعرض بطاقات أو قائمة، والاختيار يفتح ملف المتعلم مباشرة
   students: () => boot("students.html", async (m) => {
-    const st = { s: null };
-    m.innerHTML = `<div class="card form"><label>ابحث عن متعلم</label><div id="pk"></div><p class="sub">البيانات مرجعها النواة الرقمية، ولا تُنسخ داخل النظام. تعرض البطاقة ما تسمح به صلاحيتك.</p></div>`;
-    studentPicker($("#pk"), (s) => (location.href = "student.html?id=" + s.id), { placeholder: "اكتب حرفين على الأقل من الاسم أو الرقم" });
+    const qs = new URLSearchParams(location.search), VK = "qm-dir-view";
+    let view = qs.get("v") || (() => { try { return localStorage.getItem(VK); } catch { return null; } })() || "cards";
+    const st = { stage: qs.get("st") || "", grade: qs.get("g") || "", section: qs.get("s") || "", q: qs.get("q") || "" };
+    m.innerHTML = '<p class="sub">جارٍ تحميل المتعلمين…</p>';
+    const all = await rpc("qm_students_directory");
+    // المرحلة من رمز الصف (m: متوسط، p: ابتدائي، s/h: ثانوي)
+    const STG = { p: "المرحلة الابتدائية", m: "المرحلة المتوسطة", s: "المرحلة الثانوية", h: "المرحلة الثانوية", k: "رياض الأطفال" };
+    const stageOf = (x) => { const c = String(x.grade_code || "").charAt(0).toLowerCase(); return STG[c] ? c === "h" ? "s" : c : "o"; };
+    const stName = (k) => STG[k] || "مرحلة أخرى";
+    all.forEach((x) => (x.stage = stageOf(x)));
+    const uniq = (arr, key) => { const seen = new Map(); arr.forEach((x) => { const k = key(x); if (k[0] && !seen.has(k[0])) seen.set(k[0], k); }); return [...seen.values()]; };
+    const stages = uniq(all, (x) => [x.stage, stName(x.stage)]);
+    if (stages.length === 1) st.stage = stages[0][0];
+    const chips = (id, list, cur, attr) => `<div class="gr-chips" id="${id}"><button type="button" data-${attr}="" aria-pressed="${!cur}">الكل<small>${list.total}</small></button>${list.map(([k, n, c]) => `<button type="button" data-${attr}="${esc(k)}" aria-pressed="${k === cur}">${esc(n)}<small>${c}</small></button>`).join("")}</div>`;
+    m.innerHTML = `<div class="card dir-f"><div class="gr-steps">
+        <div class="gr-step" id="wSt"><span>المرحلة</span><div id="fSt"></div></div>
+        <div class="gr-step"><span>الصف</span><div id="fG"></div></div>
+        <div class="gr-step" id="wS"><span>الفصل</span><div id="fS"></div></div></div>
+        <div class="dir-bar"><input id="dq" type="search" placeholder="تصفية بالاسم أو الرقم داخل الفرز الحالي" aria-label="تصفية بالاسم أو الرقم" value="${esc(st.q)}">
+        <span class="dir-n" id="dn" aria-live="polite"></span>
+        <div class="dir-v" role="group" aria-label="طريقة العرض"><button type="button" data-v="cards" title="بطاقات">${ico("grid")}<span>بطاقات</span></button><button type="button" data-v="list" title="قائمة">${ico("list")}<span>قائمة</span></button></div></div></div>
+      <div id="dl" class="mt"></div>`;
+    const sync = () => { const u = new URLSearchParams(); if (st.stage && stages.length > 1) u.set("st", st.stage); if (st.grade) u.set("g", st.grade); if (st.section) u.set("s", st.section); if (st.q) u.set("q", st.q); u.set("v", view);
+      history.replaceState(null, "", location.pathname + "?" + u.toString()); };
+    const draw = () => {
+      const inSt = all.filter((x) => !st.stage || x.stage === st.stage);
+      const gl = uniq(inSt, (x) => [x.grade_code, x.grade || x.grade_code, x.grade_sort]).sort((a, b) => a[2] - b[2]).map(([k, n]) => [k, n, inSt.filter((x) => x.grade_code === k).length]); gl.total = inSt.length;
+      if (st.grade && !gl.some((g) => g[0] === st.grade)) st.grade = "";
+      const inG = inSt.filter((x) => !st.grade || x.grade_code === st.grade);
+      const sl = uniq(inG, (x) => [x.section_id, (st.grade ? "" : (x.grade || "") + " · ") + (x.section || "بلا فصل")]).map(([k, n]) => [k, n, inG.filter((x) => x.section_id === k).length]); sl.total = inG.length;
+      if (st.section && !sl.some((x) => x[0] === st.section)) st.section = "";
+      const sl2 = stages.map(([k, n]) => [k, n, all.filter((x) => x.stage === k).length]); sl2.total = all.length;
+      $("#fSt").innerHTML = stages.length > 1 ? chips("cSt", sl2, st.stage, "st") : `<div class="gr-chips"><button type="button" aria-pressed="true" disabled>${esc(stages[0]?.[1] || "—")}<small>${all.length}</small></button></div>`;
+      $("#fG").innerHTML = chips("cG", gl, st.grade, "g");
+      $("#wS").hidden = !st.grade; $("#fS").innerHTML = st.grade ? chips("cS", sl, st.section, "s") : "";
+      const q = st.q.trim(), rows = inG.filter((x) => (!st.section || x.section_id === st.section) && (!q || x.name.includes(q) || String(x.no || "").startsWith(q)));
+      $("#dn").textContent = rows.length + " متعلماً";
+      $$(".dir-v button", m).forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === view));
+      const href = (x) => "student.html?id=" + x.id;
+      const where = (x) => esc(x.grade || "") + (x.section ? " · " + esc(x.section) : "");
+      $("#dl").innerHTML = !rows.length ? empty("users", "لا متعلمين بهذا الفرز", q ? "جرّب اسماً آخر أو امسح التصفية." : "اختر صفاً أو فصلاً آخر.")
+        : view === "list"
+        ? `<div class="card dir-list"><div style="overflow:auto"><table class="tbl"><thead><tr><th>#</th><th>المتعلم</th><th>الصف</th><th>الفصل</th><th>الرصيد</th><th>الأوسمة</th></tr></thead><tbody>${rows.map((x, i) => `<tr><td>${i + 1}</td><td><a href="${href(x)}"><b>${esc(x.name)}</b></a>${x.no ? `<br><small>${esc(x.no)}</small>` : ""}</td><td>${esc(x.grade || "")}</td><td>${esc(x.section || "—")}</td><td>${x.balance}</td><td>${x.badges}</td></tr>`).join("")}</tbody></table></div></div>`
+        : `<div class="dir-cards">${rows.map((x) => `<a class="dir-c" href="${href(x)}"><span class="av">${esc(initials(x.name))}</span><span class="dir-t"><b>${esc(x.name)}</b><small>${where(x)}</small></span><span class="dir-p"><b>${x.balance}</b><small>نقطة</small>${x.badges ? `<em>${ico("medal")}${x.badges}</em>` : ""}</span></a>`).join("")}</div>`;
+      $$("[data-st]", m).forEach((b) => (b.onclick = () => { st.stage = b.dataset.st; st.grade = ""; st.section = ""; sync(); draw(); }));
+      $$("[data-g]", m).forEach((b) => (b.onclick = () => { st.grade = b.dataset.g; st.section = ""; sync(); draw(); }));
+      $$("[data-s]", m).forEach((b) => (b.onclick = () => { st.section = b.dataset.s; sync(); draw(); }));
+    };
+    $$(".dir-v button", m).forEach((b) => (b.onclick = () => { view = b.dataset.v; try { localStorage.setItem(VK, view); } catch {} sync(); draw(); }));
+    let t = 0; $("#dq").oninput = (e) => { clearTimeout(t); t = setTimeout(() => { st.q = e.target.value; sync(); draw(); }, 150); };
+    draw();
   }),
 
   agent: () => boot("agent.html", async (m) => {
@@ -325,6 +374,16 @@ async function levelsAdmin(root) {
   };
   await draw();
 }
+// الصلاحيات: أدوار قيمي (وكيل شؤون الطلاب والموجه الطلابي) صفحة مستقلة قبل «إدارة البوابة»
+PAGES.perms = () => boot("perms.html", async (m) => {
+  m.innerHTML = `<div id="bd"><p class="sub">جارٍ التحميل…</p></div>`;
+  const body = $("#bd");
+  try {
+        const S = await rpc("qm_staff_list");
+        body.innerHTML = `<p class="sub">المعلم هو أي منسوب فعّال في النواة. عيّن هنا وكيل شؤون الطلاب والموجه الطلابي. الوكيل هو من يستقبل الوقائع من المعلمين.</p><div style="overflow:auto"><table class="tbl"><thead><tr><th>المنسوب</th><th>الوظيفة في النواة</th><th>وكيل شؤون الطلاب</th><th>الموجه الطلابي</th></tr></thead><tbody>${S.map((s) => `<tr><td>${esc(s.name)}</td><td><small>${esc(s.job || "")}</small></td>${["agent", "counselor"].map((r) => `<td><label class="tgl"><input type="checkbox" data-s="${s.id}" data-r="${r}" ${s["is_" + r] ? "checked" : ""} aria-label="${r}"><span></span></label></td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+        $$("[data-s]", body).forEach((el) => (el.onchange = async () => { try { await rpc("qm_set_role", { p_staff: el.dataset.s, p_role: el.dataset.r, p_on: el.checked }); toast("تم الحفظ"); } catch (e) { toast(mapErr(e), true); el.checked = !el.checked; } }));
+  } catch (e) { body.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; }
+}, { role: "admin" });
 PAGES.admin = () => openHub("admin.html");
 PAGES.adminTab = () => boot("admin.html", async (m, c) => {
   let cur = window.__hub.tab;
@@ -332,11 +391,7 @@ PAGES.adminTab = () => boot("admin.html", async (m, c) => {
   const body = $("#bd"), kinds = [["positive", "إيجابي"], ["negative", "سلبي"]];
   const draw = async () => { body.innerHTML = '<p class="sub">جارٍ التحميل…</p>';
     try {
-      if (cur === "roles") {
-        const S = await rpc("qm_staff_list");
-        body.innerHTML = `<p class="sub">المعلم هو أي منسوب فعّال في النواة. عيّن هنا وكيل شؤون الطلاب والموجه الطلابي. الوكيل هو من يستقبل الوقائع من المعلمين.</p><div style="overflow:auto"><table class="tbl"><thead><tr><th>المنسوب</th><th>الوظيفة في النواة</th><th>وكيل شؤون الطلاب</th><th>الموجه الطلابي</th></tr></thead><tbody>${S.map((s) => `<tr><td>${esc(s.name)}</td><td><small>${esc(s.job || "")}</small></td>${["agent", "counselor"].map((r) => `<td><label class="tgl"><input type="checkbox" data-s="${s.id}" data-r="${r}" ${s["is_" + r] ? "checked" : ""} aria-label="${r}"><span></span></label></td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
-        $$("[data-s]", body).forEach((el) => (el.onchange = async () => { try { await rpc("qm_set_role", { p_staff: el.dataset.s, p_role: el.dataset.r, p_on: el.checked }); toast("تم الحفظ"); } catch (e) { toast(mapErr(e), true); el.checked = !el.checked; } }));
-      } else if (cur === "types") await crud(body, "qm_reinforcement_types", [{ k: "name_ar", l: "الاسم" }, { k: "domain", l: "المجال", t: "select", o: [["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"], ["general", "عام"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "criteria", l: "طريقة الاستحقاق (تظهر للطلاب)" }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "الاسم", req: 1 }, { k: "domain", l: "المجال", t: "select", o: [["general", "عام"], ["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "criteria", l: "طريقة الاستحقاق (تظهر للطلاب)" }]);
+      if (cur === "types") await crud(body, "qm_reinforcement_types", [{ k: "name_ar", l: "الاسم" }, { k: "domain", l: "المجال", t: "select", o: [["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"], ["general", "عام"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "criteria", l: "طريقة الاستحقاق (تظهر للطلاب)" }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "الاسم", req: 1 }, { k: "domain", l: "المجال", t: "select", o: [["general", "عام"], ["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "criteria", l: "طريقة الاستحقاق (تظهر للطلاب)" }]);
       else if (cur === "badges") await badgeAdmin(body);
       else if (cur === "levels") await levelsAdmin(body);
       else if (cur === "cats") await crud(body, "qm_behavior_categories", [{ k: "name_ar", l: "التصنيف" }, { k: "kind", l: "النوع", t: "select", o: kinds }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "التصنيف", req: 1 }, { k: "kind", l: "النوع", t: "select", o: kinds }]);
