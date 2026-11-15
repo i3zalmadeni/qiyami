@@ -295,7 +295,7 @@ async function boot(page, render, o = {}) {
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
      <div class="dnav"><div class="wrap dn"><button type="button" class="dm-b" id="dmB" aria-haspopup="dialog" aria-expanded="false" aria-controls="dm">${ico("menu")}<span>${esc(cur[1])}</span></button><div class="dnav-in">${items.map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
-     <div class="dwho"><div class="ntf"><button type="button" class="ntf-b" id="ntfB" aria-label="الإشعارات" aria-expanded="false" aria-haspopup="true">${ico("bell")}<span class="ntf-n" id="ntfN" hidden></span></button><div class="ntf-p" id="ntfP" hidden><div class="ntf-h"><b>الإشعارات</b><button type="button" id="ntfR">تحديد الكل كمقروء</button></div><div id="ntfL"><p class="sub" style="margin:14px">جارٍ التحميل…</p></div></div></div><span class="dname">${esc(who.name)}</span><a class="loginbtn" href="#" id="out">خروج</a></div></div></div></header>
+     <div class="dwho">${ubBarHTML(who.name, "dashboard.html")}</div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <main class="wrap" id="main"></main>${footerHTML}`;
@@ -320,16 +320,10 @@ async function boot(page, render, o = {}) {
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات من جدول qm_notifications (توجَّه للمعنيين فقط)، والمقروء يُحفظ في القاعدة
-  (async () => {
-    let N = []; try { N = await rpc("qm_notifications_list", { p_limit: 20 }); } catch (e) {}
-    const paint = () => { const n = N.filter((x) => !x.is_read).length, e = $("#ntfN"); e.hidden = !n; e.textContent = n > 9 ? "9+" : n;
-      $("#ntfL").innerHTML = N.length ? N.map((x) => `<a class="ntf-i${x.is_read ? "" : " new"}" href="${esc(x.link || "#")}"><span class="ntf-ic">${ico("bell")}</span><span><b>${esc(x.title)}</b>${x.body ? `<small>${esc(x.body)}</small>` : ""}<time>${esc(fmtT(x.created_at))}</time></span></a>`).join("") : '<p class="sub" style="margin:16px;text-align:center">لا إشعارات حالياً.</p>'; };
-    const P = $("#ntfP"), B = $("#ntfB"), close = () => { P.hidden = true; B.setAttribute("aria-expanded", "false"); };
-    B.onclick = (e) => { e.stopPropagation(); P.hidden = !P.hidden; B.setAttribute("aria-expanded", String(!P.hidden)); };
-    $("#ntfR").onclick = async () => { try { await rpc("qm_notifications_read"); N = N.map((x) => ({ ...x, is_read: true })); paint(); } catch (e) {} };
-    P.onclick = (e) => e.stopPropagation(); document.addEventListener("click", close); document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
-    paint();
-  })();
+  ubMount({ key: "qm", uid: who.staff_id || who.id, markAll: () => rpc("qm_notifications_read"), load: async () => {
+    const L = await rpc("qm_notifications_list", { p_limit: 20 });
+    return (L || []).map((x) => ({ id: x.id, t: x.created_at, read: !!x.is_read, title: x.title, body: x.body, href: x.link || "#", icon: "star", tone: "info" }));
+  } });
   const main = $("#main");
   const draw = async (fn) => { try { await fn(main, ctx); } catch (e) { console.error(e); main.innerHTML = `<p class="err">تعذر تحميل الصفحة: ${esc(mapErr(e))}</p>`; } };
   if (hub) {
