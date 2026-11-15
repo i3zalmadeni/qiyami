@@ -168,17 +168,25 @@ const PAGES = {
 
   behavior: () => boot("negative.html", async (m, c) => {
     const Ng = await types("qm_behavior_categories", (x) => x.kind === "negative"), sn = { s: null };
-    m.innerHTML = `<form class="card form" id="fn"><div><label>المتعلم</label><div id="pkn"></div></div>
-      <div class="two"><div><label for="dt">تاريخ الواقعة</label><input id="dt" type="date" max="${todayISO()}" value="${todayISO()}" required></div><div><label for="tm">الوقت</label><input id="tm" type="time"></div></div>
-      <div class="two"><div><label for="lc">موقع الحدوث</label><input id="lc" maxlength="120"></div><div><label for="cn">تصنيف السلوك</label><select id="cn">${opt(Ng)}</select></div></div>
-      <div><label for="dn">وصف موضوعي للواقعة</label><textarea id="dn" maxlength="1500" required></textarea></div>
-      <div><label for="nt">ملاحظات المعلم</label><textarea id="nt" maxlength="800"></textarea></div>
-      <div><label for="pr">الأطراف ذات العلاقة عند الضرورة</label><input id="pr" maxlength="300"></div>
-      <div><label for="fn2">مرفقات (حتى 3، صور أو PDF)</label><input id="fn2" type="file" multiple accept="image/png,image/jpeg,image/webp,application/pdf"></div>
-      <p class="err" id="en" role="alert"></p><div class="acts"><button class="btn" id="gn">رفع الواقعة إلى وكيل شؤون الطلاب</button></div>
-      <p class="sub">تُسجَّل الواقعة بحالة «مرصودة» وتصل إلى صندوق الوكيل. وليست مخالفة معتمدة ولا يُخصم بها شيء. صِف ما حدث دون أحكام.</p></form>`;
+    const sec = (n, ic, t, d, body) => `<section class="ir-sec"><header><span class="ir-n">${n}</span>${ico(ic)}<div><h3>${t}</h3><p>${d}</p></div></header><div class="ir-b">${body}</div></section>`;
+    m.innerHTML = `<form class="ir" id="fn" novalidate>
+      ${sec(1, "user", "المتعلم", "ابحث باسم المتعلم أو رقمه واختره من القائمة.", `<div id="pkn"></div>`)}
+      ${sec(2, "clock", "التوقيت والمكان", "متى وأين حدثت الواقعة.", `<div class="ir-g3">
+        <div><label for="dt">تاريخ الواقعة</label><input id="dt" type="date" max="${todayISO()}" value="${todayISO()}" required></div>
+        <div><label for="tm">الوقت <small>(اختياري)</small></label><input id="tm" type="time"></div>
+        <div><label for="lc">موقع الحدوث <small>(اختياري)</small></label><input id="lc" maxlength="120" placeholder="مثال: الفصل، الساحة، الممر"></div></div>`)}
+      ${sec(3, "list", "تفاصيل الواقعة", "صِف ما حدث وصفاً موضوعياً دون أحكام.", `
+        <div class="ir-g2"><div><label for="cn">تصنيف السلوك</label><select id="cn">${opt(Ng)}</select></div>
+        <div><label for="pr">الأطراف ذات العلاقة <small>(عند الضرورة)</small></label><input id="pr" maxlength="300"></div></div>
+        <div><label for="dn">وصف موضوعي للواقعة</label><textarea id="dn" maxlength="1500" rows="6" required placeholder="ماذا حدث؟ ومن شاهده؟ وما الذي سبقه؟"></textarea><small class="ir-c" id="dnc">0 / 1500</small></div>
+        <div><label for="nt">ملاحظات المعلم <small>(اختياري)</small></label><textarea id="nt" maxlength="800" rows="3"></textarea></div>`)}
+      ${sec(4, "image", "المرفقات", "حتى 3 ملفات: صور أو PDF (اختياري).", `<input id="fn2" type="file" multiple accept="image/png,image/jpeg,image/webp,application/pdf">`)}
+      <div class="ir-f"><p class="sub">تُسجَّل الواقعة بحالة «مرصودة» وتصل إلى صندوق وكيل شؤون الطلاب. وليست مخالفة معتمدة ولا يُخصم بها شيء.</p>
+        <p class="err" id="en" role="alert"></p><button class="btn" id="gn">${ico("up")}رفع الواقعة إلى وكيل شؤون الطلاب</button></div></form>`;
+    $("#dn").oninput = (e) => ($("#dnc").textContent = e.target.value.length + " / 1500");
     pickerField($("#pkn"), sn, "s");
     $("#fn").onsubmit = async (ev) => { ev.preventDefault(); const er = $("#en"); er.textContent = ""; if (!sn.s) { er.textContent = "اختر المتعلم أولاً."; return; }
+      if (!$("#dn").value.trim()) { er.textContent = "اكتب وصف الواقعة."; $("#dn").focus(); return; }
       const files = [...$("#fn2").files]; if (files.length > 3) { er.textContent = "الحد الأقصى 3 مرفقات."; return; } $("#gn").disabled = true;
       try { const paths = []; for (const f of files) paths.push(await uploadFile(f, c.uid));
         const r = await rpc("qm_report_incident", { p_student: sn.s.id, p_category: $("#cn").value, p_description: $("#dn").value, p_date: $("#dt").value || null, p_time: $("#tm").value || null, p_location: $("#lc").value, p_notes: $("#nt").value, p_parties: $("#pr").value, p_attachments: paths });

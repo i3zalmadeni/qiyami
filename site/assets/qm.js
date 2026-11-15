@@ -57,7 +57,7 @@ function notice(title, rows, tone) {
 }
 function toast(msg, bad) { const d = document.createElement("div"); d.className = "toast" + (bad ? " bad" : ""); d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 3800); }
 function modal(html, wide) {
-  const ov = document.createElement("div"); ov.className = "ov"; ov.innerHTML = `<div class="md" role="dialog" aria-modal="true" ${wide ? 'style="max-width:860px"' : ""}>${html}</div>`;
+  const ov = document.createElement("div"); ov.className = "ov"; ov.innerHTML = `<div class="md" role="dialog" aria-modal="true" ${wide === "full" ? 'style="max-width:min(1200px,96vw)"' : wide ? 'style="max-width:860px"' : ""}>${html}</div>`;
   const close = () => ov.remove(); ov.addEventListener("mousedown", (e) => { if (e.target === ov) close(); });
   document.addEventListener("keydown", function k(e) { if (e.key === "Escape") { close(); document.removeEventListener("keydown", k); } });
   document.body.appendChild(ov); return { el: ov.firstChild, close };
@@ -181,18 +181,24 @@ function incidentActions(d) {
   const seen = new Set(); return a.filter((x) => (seen.has(x[0] + x[1]) ? false : seen.add(x[0] + x[1])));
 }
 async function openIncident(id, onDone) {
-  const md = modal('<p class="sub">جارٍ التحميل…</p>', true);
+  const md = modal('<p class="sub">جارٍ التحميل…</p>', "full");
   const paint = async () => {
     try {
       const d = await rpc("qm_incident_get", { p_id: id }), acts = incidentActions(d);
+      const kv = (k, v) => v ? `<div><dt>${k}</dt><dd>${v}</dd></div>` : "";
       md.el.innerHTML = `<div class="row2"><div><h3 style="margin:0">واقعة رقم ${d.no} ${tbadge(d.status_name, d.tone)}</h3><p class="sub">رُصدت ${esc(fmtT(d.created_at))} · آخر تحديث ${esc(ago(d.updated_at))}</p></div><button class="btn sm sec" data-x>إغلاق</button></div>
-      <div class="item"><div class="row2"><div><b>${esc(d.student)}</b><br><small>${esc(d.grade || "")}${d.section ? " · " + esc(d.section) : ""}</small></div><button class="btn sm sec" data-card="${d.student_id}">بطاقة المتعلم</button></div>
-        <p class="sub" style="margin:10px 0 2px">${esc(d.category)} · ${esc(fmtDay(d.occurred_on))}${d.occurred_time ? " · " + esc(String(d.occurred_time).slice(0, 5)) : ""}${d.location ? " · " + esc(d.location) : ""}</p>
-        <p style="white-space:pre-wrap">${esc(d.description)}</p>
-        ${d.teacher_notes ? `<p class="bk-n"><small>ملاحظات المعلم:</small> ${esc(d.teacher_notes)}</p>` : ""}${d.parties ? `<p class="bk-n"><small>الأطراف ذات العلاقة:</small> ${esc(d.parties)}</p>` : ""}
-        <p class="sub">سجّلها: ${esc(d.reporter)}</p>
-        ${d.attachments.length ? `<div class="acts">${d.attachments.map((p, i) => `<button class="btn sm sec" data-att="${esc(p)}">مرفق ${i + 1}</button>`).join("")}</div>` : ""}
-        <p class="sub" style="margin-top:8px">هذه الواقعة مرصودة وليست مخالفة معتمدة، ولا تُخصم بها نقاط.</p></div>
+      <div class="ir-v">
+        <section class="ir-sec"><header>${ico("user")}<div><h3>المتعلم</h3></div><button class="btn sm sec" data-card="${d.student_id}">بطاقة المتعلم</button></header>
+          <dl class="ir-kv">${kv("الاسم", `<b>${esc(d.student)}</b>`)}${kv("الصف", esc(d.grade || ""))}${kv("الفصل", esc(d.section || ""))}${kv("سجّلها", esc(d.reporter))}</dl></section>
+        <section class="ir-sec"><header>${ico("clock")}<div><h3>التوقيت والمكان</h3></div></header>
+          <dl class="ir-kv">${kv("التاريخ", esc(fmtDay(d.occurred_on)))}${kv("الوقت", d.occurred_time ? esc(String(d.occurred_time).slice(0, 5)) : "")}${kv("موقع الحدوث", esc(d.location || ""))}</dl></section>
+        <section class="ir-sec ir-w"><header>${ico("list")}<div><h3>تفاصيل الواقعة</h3></div></header>
+          <dl class="ir-kv">${kv("تصنيف السلوك", esc(d.category))}${kv("الأطراف ذات العلاقة", esc(d.parties || ""))}</dl>
+          <div class="ir-t"><small>الوصف</small><p>${esc(d.description)}</p></div>
+          ${d.teacher_notes ? `<div class="ir-t"><small>ملاحظات المعلم</small><p>${esc(d.teacher_notes)}</p></div>` : ""}
+          ${d.attachments.length ? `<div class="acts">${d.attachments.map((p, i) => `<button class="btn sm sec" data-att="${esc(p)}">مرفق ${i + 1}</button>`).join("")}</div>` : ""}
+          <p class="sub" style="margin:10px 0 0">هذه الواقعة مرصودة وليست مخالفة معتمدة، ولا تُخصم بها نقاط.</p></section>
+      </div>
       <h4 class="sec">السجل الزمني</h4><ul class="tl">${d.events.map((e) => `<li class="${e.visibility === "counselor" ? "priv" : ""}"><div class="w"><b>${esc(EV[e.kind] || e.kind)}${e.visibility === "counselor" ? " (سري)" : e.visibility === "internal" ? " (داخلي)" : ""}</b><span>${esc(e.by)} · ${esc(fmtT(e.created_at))}</span></div>${e.note ? `<p>${esc(e.note)}</p>` : ""}</li>`).join("")}</ul>
       ${acts.length ? `<h4 class="sec">الإجراءات المتاحة</h4><div class="acts">${acts.map(([k, l, , ic]) => `<button class="btn sm ${k === "dismiss" ? "sec" : ""}" data-act="${k}">${ico(ic)}${esc(l)}</button>`).join("")}</div>` : ""}`;
       $("[data-x]", md.el).onclick = () => { md.close(); onDone && onDone(); };

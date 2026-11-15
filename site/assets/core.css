@@ -539,7 +539,7 @@ header nav a{position:relative}header nav a::after{content:"";position:absolute;
 .sm-i b{font-size:1.1rem}.sm-i span{display:inline-flex;align-items:center;gap:7px;color:var(--ink2);font-weight:600}.sm-i .ico{width:17px;height:17px;color:var(--brand)}
 /* ===== جدار الأسرة ===== */
 .wd{display:flex;flex-wrap:wrap;gap:8px;max-width:760px}
-.w{width:26px;height:26px;border-radius:50% 50% 50% 8px;background:var(--c);opacity:.18;transform:scale(.5);transition:opacity .35s,transform .35s,filter .3s}
+.wf .w{width:26px;height:26px;border-radius:50% 50% 50% 8px;background:var(--c);opacity:.18;transform:scale(.5);transition:opacity .35s,transform .35s,filter .3s}
 .wf.go .w{opacity:1;transform:none;transition-delay:calc(var(--i)*22ms)}
 .wf.hl .w{opacity:.18;transition-delay:0s}.wf.hl .w.hit{opacity:1;transform:scale(1.18)}
 .wl{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
@@ -597,7 +597,7 @@ header nav a{position:relative}header nav a::after{content:"";position:absolute;
 .sp-n{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--ink2)}
 .sp-x{position:absolute;top:14px;inset-inline-start:14px;z-index:3;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.9);cursor:pointer;font-size:1rem;box-shadow:var(--shadow)}
 @media (max-width:640px){.sp-p{grid-template-columns:1fr}.sp-ph{min-height:220px}}
-@media (prefers-reduced-motion:reduce){.sm .s.f,.pw,.rr,.plan .fb,.w{animation:none!important;opacity:1!important;transform:none!important}}
+@media (prefers-reduced-motion:reduce){.sm .s.f,.pw,.rr,.plan .fb,.wf .w{animation:none!important;opacity:1!important;transform:none!important}}
 /* ===== الرئيسية المختصرة ===== */
 .today{max-width:1280px;margin:26px auto 0;padding-inline:16px;display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line)}
 .today>div{padding:20px 22px;border-inline-start:1px solid var(--line)}.today>div:first-child{border-inline-start:0}

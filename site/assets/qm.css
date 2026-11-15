@@ -187,9 +187,9 @@ header.dash .idl .moe{padding-inline-start:14px}
 .dnav a.ntf-i b{color:var(--ink)}
 .dnav a.ntf-i .ico{stroke:currentColor}
 .tl{position:relative;margin:8px 0 0;padding:0;list-style:none}
-.tl li{position:relative;padding:0 22px 14px 0;border-inline-start:0}
-.tl li::before{content:"";position:absolute;inset-inline-start:auto;inset-inline-end:0;top:6px;width:10px;height:10px;border-radius:50%;background:var(--brand)}
-.tl li::after{content:"";position:absolute;inset-inline-end:4px;top:18px;bottom:-2px;width:2px;background:var(--line)}
+.tl li{position:relative;padding-block:0 14px;padding-inline-start:22px;border-inline-start:0}
+.tl li::before{content:"";position:absolute;inset-inline-start:0;top:6px;width:10px;height:10px;border-radius:50%;background:var(--brand)}
+.tl li::after{content:"";position:absolute;inset-inline-start:4px;top:18px;bottom:-2px;width:2px;background:var(--line)}
 .tl li:last-child::after{display:none}
 .tl .w{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.86rem;color:var(--ink2)}
 .tl .w b{color:var(--ink)}.tl p{margin:4px 0 0;font-size:.92rem;white-space:pre-wrap}
@@ -587,3 +587,24 @@ main.hubmain{padding-top:18px}
 .pm-all button{border:1px solid var(--line);background:var(--surface);color:var(--ink2);font:inherit;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:8px;cursor:pointer}
 .pm-all button:hover{border-color:var(--brand);color:var(--brand)}
 .pm-t thead th{position:sticky;top:0;background:var(--surface);z-index:1}
+
+/* ===== تسجيل الواقعة وعرضها: بعرض الصفحة كاملة، وكل مجموعة في قسم مستقل ===== */
+.ir{display:grid;gap:16px}
+.ir-sec{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px 20px}
+.ir-sec>header{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed var(--line)}
+.ir-sec>header>.ico{width:22px;height:22px;color:var(--brand)}
+.ir-sec>header>div{flex:1;min-width:0}
+.ir-sec h3{margin:0;font-size:1.02rem}.ir-sec header p{margin:2px 0 0;font-size:.84rem;color:var(--ink2)}
+.ir-n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--grad);color:#fff;font-weight:800;font-size:.85rem;flex:none}
+.ir-b{display:grid;gap:14px}.ir-b label{display:block;font-weight:700;margin-bottom:6px}.ir-b label small{font-weight:500;color:var(--ink2)}
+.ir-b input,.ir-b select,.ir-b textarea{width:100%}
+.ir-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.ir-g2{display:grid;grid-template-columns:1fr 2fr;gap:14px}
+.ir-c{display:block;text-align:end;color:var(--ink2);font-size:.75rem;margin-top:4px}
+.ir-f{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px 20px}
+.ir-f .sub{flex:1;min-width:260px;margin:0}.ir-f .err{flex-basis:100%;margin:0}.ir-f .err:empty{display:none}
+.ir-v{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.ir-v .ir-w{grid-column:1/-1}
+.ir-kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;margin:0}
+.ir-kv dt{font-size:.78rem;color:var(--ink2)}.ir-kv dd{margin:2px 0 0;font-weight:600}
+.ir-t{margin-top:12px}.ir-t small{color:var(--ink2);font-size:.78rem}.ir-t p{white-space:pre-wrap;margin:4px 0 0;line-height:1.8;background:var(--bg,#f6fafb);border-radius:12px;padding:10px 14px}
+@media (max-width:760px){.ir-g3,.ir-g2,.ir-v{grid-template-columns:1fr}.ir-sec{padding:14px}}
