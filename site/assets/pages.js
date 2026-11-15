@@ -82,6 +82,8 @@ const PAGES = {
       sb.from("qm_badges").select("id,name_ar,criteria,points,kind,category,icon,image_path").eq("is_active", true).order("sort_order"), sb.from("qm_settings").select("max_points_per_award").single()]);
     const B = (BQ.data || []).map((b) => ({ ...b, image: b.image_path })), maxP = SQ.data?.max_points_per_award || 50;
     const st = { grade: "", section: "", rows: [], sel: new Set() };
+    F.sections = F.sections.filter((x) => canSection(x.id)); F.grades = F.grades.filter((g) => F.sections.some((x) => x.grade === g.code));
+    if (!F.sections.length) { m.innerHTML = noSectionsMsg(); return; }
     m.innerHTML = `<div class="card gr-steps"><div class="gr-step"><span>المرحلة</span><div class="gr-chips"><button type="button" aria-pressed="true">المتوسطة</button></div></div>
         <div class="gr-step"><span>الصف</span><div class="gr-chips" id="gG">${F.grades.map((g) => `<button type="button" data-g="${esc(g.code)}" aria-pressed="false">${esc(g.name)}</button>`).join("")}</div></div>
         <div class="gr-step" id="gSw" hidden><span>الفصل</span><div class="gr-chips" id="gS"></div></div>
@@ -152,7 +154,7 @@ const PAGES = {
       $$("#gS button").forEach((b) => (b.onclick = () => { st.section = b.dataset.s; st.sel.clear(); $$("#gS button").forEach((x) => x.setAttribute("aria-pressed", x === b)); $("#ro").innerHTML = '<p class="sub">جارٍ التحميل…</p>'; loadRoster(); })); };
     $$("#gG button").forEach((b) => (b.onclick = () => { st.grade = b.dataset.g; st.section = ""; st.rows = []; st.sel.clear(); $$("#gG button").forEach((x) => x.setAttribute("aria-pressed", x === b)); drawSecs(); drawRoster(); }));
     $("#one").onclick = () => { const md = modal(`<div class="row2"><h3 style="margin:0">منح متعلم واحد</h3><button class="btn sm sec" data-x type="button">إغلاق</button></div><p class="sub">اكتب جزءاً من اسم المتعلم ثم اختره.</p><div id="opk" style="min-height:230px"></div>`);
-      $("[data-x]", md.el).onclick = md.close; studentPicker($("#opk", md.el), (s) => { md.close(); grant([s], "points"); }); $("input", md.el).focus(); };
+      $("[data-x]", md.el).onclick = md.close; studentPicker($("#opk", md.el), (s) => { md.close(); grant([s], "points"); }, { filter: (s) => canSection(s.section_id) }); $("input", md.el).focus(); };
     await loadRec();
   }),
 
@@ -392,6 +394,7 @@ const PERM_COLS = [
   ["reports", "التقارير", "التقارير المجمّعة للفترة", 1],
   ["agent", "وكيل شؤون الطلاب", "يستقبل الوقائع ويعالجها"],
   ["counselor", "الموجه الطلابي", "الحالات الإجرائية والدعم"],
+  ["all_sections", "كل الفصول", "يمنح النقاط والأوسمة لكل المتعلمين دون إسناد تدريس"],
   ["portal_admin", "مدير البوابة", "الصلاحيات وإدارة البوابة (يمنحها مدير النواة)"],
 ];
 PAGES.perms = () => boot("perms.html", async (m, c) => {
@@ -659,6 +662,8 @@ PAGES.award = () => boot("award.html", async (m, c) => {
   const [BQ, F, H] = await Promise.all([sb.from("qm_badges").select("id,name_ar,criteria,points,kind,category,icon,image_path,sort_order").eq("is_active", true).neq("kind", "educational").order("sort_order"),
     rpc("qm_pub_filters"), rpc("qm_pub_home").catch(() => ({}))]);
   const B = (BQ.data || []).map((b) => ({ ...b, image: b.image_path }));
+  F.sections = F.sections.filter((x) => canSection(x.id)); F.grades = F.grades.filter((g) => F.sections.some((x) => x.grade === g.code));
+  if (!F.sections.length) { m.innerHTML = noSectionsMsg(); return; }
   const st = { badge: null, grade: "", section: "", rows: [], sel: new Map() };
   const mine = ((H && H.last_badges) || []).filter((x) => x.by === c.who.name).slice(0, 8);
   m.innerHTML = `<section class="aw-hero"><span class="aw-ic">${ico("crown")}</span><div><h2>منح الأوسمة</h2><p>كرّم المتميزين سلوكاً وانضباطاً ومبادرة بأوسمة المدرسة العامة. اختر الوسام، ثم المتعلمين، ثم اكتب سبب المنح.</p></div></section>
@@ -691,7 +696,7 @@ PAGES.award = () => boot("award.html", async (m, c) => {
     const S = F.sections.filter((z) => z.grade === st.grade); $("#gSw").hidden = false;
     $("#gS").innerHTML = S.length ? S.map((z) => `<button type="button" data-s="${z.id}" aria-pressed="false">${esc(z.name)}</button>`).join("") : '<span class="sub">لا فصول لهذا الصف.</span>';
     $$("#gS button").forEach((y) => (y.onclick = () => { st.section = y.dataset.s; $$("#gS button").forEach((w) => w.setAttribute("aria-pressed", w === y)); loadRoster(); })); drawRoster(); }));
-  studentPicker($("#pk"), (s) => { st.sel.set(s.id, s); bar(); drawRoster(); }, { placeholder: "اكتب حرفين على الأقل من الاسم أو الرقم" });
+  studentPicker($("#pk"), (s) => { st.sel.set(s.id, s); bar(); drawRoster(); }, { placeholder: "اكتب حرفين على الأقل من الاسم أو الرقم", filter: (s) => canSection(s.section_id) });
   async function give() {
     const b = B.find((x) => x.id === st.badge), studs = [...st.sel.values()], go = $("#go"); if (!b || !studs.length) return;
     go.disabled = true;

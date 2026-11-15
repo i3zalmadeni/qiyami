@@ -27,6 +27,7 @@ const ERR = {
   type_invalid: "الاختيار غير متاح. حدّث الصفحة وأعد المحاولة.",
   points_invalid: "عدد النقاط غير صحيح أو يتجاوز الحد الأقصى المسموح.",
   student_not_enrolled: "هذا المتعلم غير مقيّد في العام الدراسي الحالي.",
+  student_not_assigned: "هذا المتعلم ليس في فصولك المُسندة إليك في «إسناد التدريس» بالنواة الرقمية.",
   duplicate: "سُجّلت عملية مطابقة قبل قليل. إن كانت مقصودة فانتظر قليلاً.",
   student_required: "أضف متعلماً واحداً على الأقل.",
   date_future: "لا يمكن تسجيل واقعة بتاريخ مستقبلي.",
@@ -43,7 +44,7 @@ async function rpc(fn, args) {
 }
 
 // شريط تنبيه أصفر يظهر أعلى الصفحة: سبب عدم المنح لكل متعلم
-const skipWhy = (w, k) => ({ month_dup: "نال هذا الوسام هذا الشهر، ويمكن منحه له مجدداً الشهر القادم", duplicate: k === "badge" ? "يحمل هذا الوسام من قبل" : "مُنح السبب نفسه قبل قليل", student_not_enrolled: "غير مقيّد في العام الدراسي الحالي" }[w] || ERR[w] || w);
+const skipWhy = (w, k) => ({ student_not_assigned: "ليس في فصولك المُسندة", month_dup: "نال هذا الوسام هذا الشهر، ويمكن منحه له مجدداً الشهر القادم", duplicate: k === "badge" ? "يحمل هذا الوسام من قبل" : "مُنح السبب نفسه قبل قليل", student_not_enrolled: "غير مقيّد في العام الدراسي الحالي" }[w] || ERR[w] || w);
 function notice(title, rows, tone) {
   let box = document.querySelector(".qm-notices");
   if (!box) { box = document.createElement("div"); box.className = "qm-notices"; document.body.appendChild(box); }
@@ -104,6 +105,9 @@ function badgeGroups(B, specialty, all) {
 const pts = (n) => `<span class="pts ${n < 0 ? "neg" : ""}"><bdi>${n > 0 ? "+" : ""}${n}</bdi></span>`;
 
 // ===== اختيار المتعلم: بحث سريع في طلاب النواة (لا نسخ لبياناتهم) =====
+// المنح للمسندين فقط: فصول المستخدم من «إسناد التدريس»، إلا من يمنح لكل الفصول
+const canSection = (id) => { const c = window.__qm; return !c || c.allSections || c.mySections.has(id); };
+const noSectionsMsg = () => empty("users", "لا فصول مُسندة إليك", "يُسند مدير النواة أو من يملك تعديل سجل المدرسة فصولك وموادك من «إسناد التدريس» في النواة الرقمية، فتظهر هنا.");
 function studentPicker(root, onPick, opts = {}) {
   root.classList.add("pick");
   root.innerHTML = `<input type="search" placeholder="${esc(opts.placeholder || "ابحث باسم المتعلم أو رقمه")}" autocomplete="off" aria-label="بحث عن متعلم"><div class="res" hidden></div>`;
@@ -112,7 +116,8 @@ function studentPicker(root, onPick, opts = {}) {
     const q = inp.value.trim(), my = ++seq;
     if (q.length < 2) { res.hidden = true; return; }
     try {
-      const rows = await rpc("qm_students_search", { p_q: q, p_limit: 12 });
+      let rows = await rpc("qm_students_search", { p_q: q, p_limit: opts.filter ? 60 : 12 });
+      if (opts.filter) rows = rows.filter(opts.filter).slice(0, 12);
       if (my !== seq) return;
       res.innerHTML = rows.length ? rows.map((s, i) => `<button type="button" data-i="${i}"><span>${esc(s.name)}</span><small>${esc(s.grade || "")} ${s.section ? "· " + esc(s.section) : ""}</small></button>`).join("") : '<p class="sub" style="margin:12px">لا نتائج.</p>';
       res.hidden = false;
@@ -299,6 +304,7 @@ async function boot(page, render, o = {}) {
   try { who = await rpc("qm_whoami"); } catch (e) { console.error(e); fail(/does not exist|schema cache|Could not find/i.test(String(e.message)) ? "لم يُنفَّذ سكربت قاعدة بيانات قيمي بعد (supabase/migrations/0201)." : "تعذر الاتصال بالخادم أو التحقق من حسابك."); return; }
   if (!who) { await doLogout("login.html?e=nostaff"); return; }
   const ctx = { who, uid: session.user.id, isAdmin: who.is_admin, isCoreAdmin: !!who.is_core_admin, isAgent: who.is_agent, isCounselor: who.is_counselor,
+    allSections: who.all_sections !== false, mySections: new Set(who.my_sections || []),
     canReinforce: who.can_reinforce !== false, canBehavior: who.can_behavior !== false, canReports: who.can_reports ?? (who.is_admin || who.is_agent || who.is_counselor),
     role: who.is_agent ? "وكيل شؤون الطلاب" : who.is_counselor ? "الموجه الطلابي" : who.is_admin ? "مدير النواة الرقمية" : "المعلم" };
   window.__qm = ctx;
