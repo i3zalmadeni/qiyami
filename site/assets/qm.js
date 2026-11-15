@@ -154,7 +154,7 @@ async function openStudentCard(id) {
     ${c.positive.length ? `<h4 class="sec">مواقف إيجابية</h4>${c.positive.map((p) => `<div class="item"><b>${esc(p.category)}</b> <small>${esc(fmtShort(p.created_at))}</small><p class="sub">${esc(p.description)}</p></div>`).join("")}` : ""}
     <h4 class="sec">حركة النقاط</h4>${L.rows.length ? `<table class="tbl"><tbody>${L.rows.map((r) => `<tr><td>${pts(r.points)}</td><td>${esc(r.reason || "")}${r.kind === "reversal" ? " (إلغاء)" : r.kind === "correction" ? " (تصحيح)" : ""}</td><td><small>${esc(r.by)} · ${esc(fmtShort(r.created_at))}</small></td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا حركات.</p>'}
     ${c.sensitive ? `<h4 class="sec">الوقائع السلوكية</h4>${c.incidents.length ? c.incidents.map((i) => `<div class="item"><b>واقعة ${i.no}</b> · ${esc(i.category)} ${tbadge(i.status_name, i.tone)} <small>${esc(fmtDay(i.occurred_on))}</small></div>`).join("") : '<p class="sub">لا وقائع.</p>'}` : ""}
-    ${(window.__qm?.isAdmin || window.__qm?.isAgent || window.__qm?.isCounselor) ? `<div class="acts mt"><a class="btn sm sec" href="student.html?id=${id}">${ico("user")}الملف الشخصي</a><button class="btn sm" data-badge>${ico("trophy")}منح وسام</button>${window.__qm.isAdmin ? `<button class="btn sm sec" data-adj>تصحيح الرصيد</button>` : ""}</div>` : ""}
+    ${(window.__qm?.isAdmin || window.__qm?.isAgent || window.__qm?.isCounselor) ? `<div class="acts mt"><a class="btn sm sec" href="student.html?id=${id}">${ico("user")}الملف الشخصي</a>${window.__qm.canReinforce ? `<button class="btn sm" data-badge>${ico("trophy")}منح وسام</button>` : ""}${window.__qm.isAdmin ? `<button class="btn sm sec" data-adj>تصحيح الرصيد</button>` : ""}</div>` : ""}
     <p class="sub">بطاقة داخلية لمنسوبي المدرسة المخولين، وليست ملفاً إدارياً شاملاً.</p>`;
     $("[data-x]", md.el).onclick = md.close;
     const bb = $("[data-badge]", md.el); if (bb) bb.onclick = () => awardBadge(id, () => { md.close(); openStudentCard(id); });
@@ -231,23 +231,23 @@ function bindIncidents(root, reload) {
 const NAV = [
   ["dashboard.html", "مكتبي الإلكتروني", "grid", "مهامك ومتابعاتك وما يدور في المنصة الآن", "all"],
   ["positive.html", "السلوك الإيجابي", "medal", "منح النقاط والأوسمة وسجل التعزيز والأرصدة والإنجازات", "all"],
-  ["negative.html", "السلوك السلبي", "flag", "تسجيل الوقائع السلوكية ومتابعة ما رفعتَه", "all"],
+  ["negative.html", "السلوك السلبي", "flag", "تسجيل الوقائع السلوكية ومتابعة ما رفعتَه", "behavior"],
   ["students.html", "دليل المتعلمين", "users", "كل المتعلمين بالفرز حسب المرحلة والصف والفصل، والدخول المباشر إلى ملف المتعلم", "all"],
   ["support.html", "المتابعة والدعم", "help", "حالات الدعم التربوي وخطط المتابعة", "support"],
   ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
   ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
   ["reports.html", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "report"],
-  ["perms.html", "الصلاحيات", "key", "تعيين وكيل شؤون الطلاب والموجه الطلابي", "admin"],
+  ["perms.html", "الصلاحيات", "key", "صلاحيات المنسوبين في البوابة: التعزيز والسلوك والتقارير والأدوار", "admin"],
   ["admin.html", "إدارة البوابة", "gear", "النقاط والأوسمة والمستويات والتصنيفات والإعدادات وسجل العمليات", "admin"],
 ];
 // الصفحات المجمّعة: صفحة واحدة في القائمة تندرج تحتها صفحات فرعية (?tab=)
 const HUBS = {
   "positive.html": [
-    ["reinforce", "منح النقاط والأوسمة", "plus", "اختر الصف والفصل ثم امنح فردياً أو جماعياً"],
+    ["reinforce", "منح النقاط والأوسمة", "plus", "اختر الصف والفصل ثم امنح فردياً أو جماعياً", "reinforce"],
     ["reinforcements", "سجل التعزيز", "calendar", "سجل التعزيزات ودفتر النقاط"],
     ["balances", "الأرصدة والتميز", "trophy", "أرصدة المتعلمين ولوحة التميز"],
     ["achievements", "الإنجاز والمواهب", "star", "إنجازات المتعلمين ومواهبهم ومعرض التميز"],
-    ["note", "موقف إيجابي", "check", "توثيق موقف إيجابي للمتعلم دون نقاط"],
+    ["note", "موقف إيجابي", "check", "توثيق موقف إيجابي للمتعلم دون نقاط", "reinforce"],
   ],
   "negative.html": [
     ["behavior", "تسجيل السلوك", "plus", "واقعة سلوكية تُرفع إلى وكيل شؤون الطلاب"],
@@ -285,11 +285,15 @@ async function boot(page, render, o = {}) {
   let who;
   try { who = await rpc("qm_whoami"); } catch (e) { console.error(e); fail(/does not exist|schema cache|Could not find/i.test(String(e.message)) ? "لم يُنفَّذ سكربت قاعدة بيانات قيمي بعد (supabase/migrations/0201)." : "تعذر الاتصال بالخادم أو التحقق من حسابك."); return; }
   if (!who) { await doLogout("login.html?e=nostaff"); return; }
-  const ctx = { who, uid: session.user.id, isAdmin: who.is_admin, isAgent: who.is_agent, isCounselor: who.is_counselor,
+  const ctx = { who, uid: session.user.id, isAdmin: who.is_admin, isCoreAdmin: !!who.is_core_admin, isAgent: who.is_agent, isCounselor: who.is_counselor,
+    canReinforce: who.can_reinforce !== false, canBehavior: who.can_behavior !== false, canReports: who.can_reports ?? (who.is_admin || who.is_agent || who.is_counselor),
     role: who.is_agent ? "وكيل شؤون الطلاب" : who.is_counselor ? "الموجه الطلابي" : who.is_admin ? "مدير النواة الرقمية" : "المعلم" };
   window.__qm = ctx;
-  const ok = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "report" && (ctx.isAdmin || ctx.isAgent || ctx.isCounselor)) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
+  const ok = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "report" && ctx.canReports) || (r === "reinforce" && ctx.canReinforce) || (r === "behavior" && ctx.canBehavior) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
+  // الصفحات الفرعية بحسب الصلاحية: ما لا يملكه المستخدم لا يظهر، ومن فتحه برابط يُنقل إلى أول صفحة متاحة
+  if (hub) { hub.tabs = hub.tabs.filter((t) => !t[4] || ok(t[4]));
+    if (!hub.tabs.some((t) => t[0] === hub.tab)) { location.replace(hub.tabs.length ? hub.page + "?tab=" + hub.tabs[0][0] : "dashboard.html"); return; } }
   const items = NAV.filter((n) => ok(n[4]));
   const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
   shell.innerHTML =

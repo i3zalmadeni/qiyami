@@ -32,11 +32,13 @@ const PAGES = {
     if (sup) { add(x.support_new, "help", "حالات دعم جديدة", "فُتحت ولم تُستلم بعد", "support.html"); add(x.support_due, "calendar", "متابعات دعم حان موعدها", "حالات تجاوزت موعد متابعتها", "support.html"); }
     const tasks = T.reduce((n, t) => n + (t.ic === "hourglass" ? 0 : t.n), 0); // المتأخرة محسوبة ضمن الجديدة
     const QA = [["positive.html", "plus", "منح نقاط أو وسام", "حسب الصف والفصل", 1], ["positive.html?tab=note", "check", "موقف إيجابي", "توثيق بلا نقاط"], ["negative.html", "flag", "تسجيل سلوك سلبي", "يُرفع إلى الوكيل"], ["positive.html?tab=achievements&t=add", "trophy", "تسجيل إنجاز", "مع الشواهد"], ["students.html", "users", "دليل المتعلمين", "بحث وبطاقة المتعلم"]];
+    // الاختصارات بحسب الصلاحية: التعزيز والسلوك السلبي
+    for (let i = QA.length - 1; i >= 0; i--) { const h = QA[i][0]; if ((!c.canReinforce && /^positive\.html(\?tab=note)?$/.test(h)) || (!c.canBehavior && h.startsWith("negative.html"))) QA.splice(i, 1); }
     if (c.isAgent) QA.push(["agent.html", "inbox", "صندوق الوكيل", "الوقائع الواردة"]);
     if (c.isCounselor) QA.push(["counselor.html", "help", "الحالات الإجرائية", "المحالة إليك"]);
     if (sup) QA.push(["support.html", "help", "المتابعة والدعم", "حالات الدعم التربوي"]);
-    if (c.isAdmin || sup) QA.push(["reports.html", "chart", "التقارير", "مؤشرات الفترة"]);
-    if (c.isAdmin) QA.push(["perms.html", "key", "الصلاحيات", "الوكيل والموجه الطلابي"], ["admin.html", "gear", "إدارة البوابة", "النقاط والأوسمة والإعدادات"]);
+    if (c.canReports) QA.push(["reports.html", "chart", "التقارير", "مؤشرات الفترة"]);
+    if (c.isAdmin) QA.push(["perms.html", "key", "الصلاحيات", "التعزيز والسلوك والأدوار"], ["admin.html", "gear", "إدارة البوابة", "النقاط والأوسمة والإعدادات"]);
     // آخر ما جرى: تُجمع عمليات المنح الجماعي (المانح والنوع والوقت نفسه) في سطر واحد
     const ev = [];
     (H.last_points || []).forEach((p) => { const k = ev.find((e) => e.k === "p" && e.at === p.at && e.by === p.by && e.type === p.type && e.points === p.points); if (k) k.n++; else ev.push({ k: "p", n: 1, ...p }); });
@@ -221,7 +223,7 @@ const PAGES = {
     let view = qs.get("v") || (() => { try { return localStorage.getItem(VK); } catch { return null; } })() || "cards";
     const st = { stage: qs.get("st") || "", grade: qs.get("g") || "", section: qs.get("s") || "", q: qs.get("q") || "" };
     m.innerHTML = '<p class="sub">جارٍ تحميل المتعلمين…</p>';
-    const all = await rpc("qm_students_directory");
+    const all = await rpc("qm_students_all");
     // المرحلة من رمز الصف (m: متوسط، p: ابتدائي، s/h: ثانوي)
     const STG = { p: "المرحلة الابتدائية", m: "المرحلة المتوسطة", s: "المرحلة الثانوية", h: "المرحلة الثانوية", k: "رياض الأطفال" };
     const stageOf = (x) => { const c = String(x.grade_code || "").charAt(0).toLowerCase(); return STG[c] ? c === "h" ? "s" : c : "o"; };
@@ -374,15 +376,42 @@ async function levelsAdmin(root) {
   };
   await draw();
 }
-// الصلاحيات: أدوار قيمي (وكيل شؤون الطلاب والموجه الطلابي) صفحة مستقلة قبل «إدارة البوابة»
-PAGES.perms = () => boot("perms.html", async (m) => {
+// الصلاحيات: كل منسوبي المدرسة الفعّالين، ولكل قدرة في البوابة صلاحية تُمنح بعلامة صح
+const PERM_COLS = [
+  ["reinforce", "التعزيز", "منح النقاط والأوسمة وتوثيق المواقف الإيجابية", 1],
+  ["behavior", "السلوك السلبي", "تسجيل الوقائع ورفعها إلى الوكيل", 1],
+  ["reports", "التقارير", "التقارير المجمّعة للفترة", 1],
+  ["agent", "وكيل شؤون الطلاب", "يستقبل الوقائع ويعالجها"],
+  ["counselor", "الموجه الطلابي", "الحالات الإجرائية والدعم"],
+  ["portal_admin", "مدير البوابة", "الصلاحيات وإدارة البوابة (يمنحها مدير النواة)"],
+];
+PAGES.perms = () => boot("perms.html", async (m, c) => {
   m.innerHTML = `<div id="bd"><p class="sub">جارٍ التحميل…</p></div>`;
-  const body = $("#bd");
-  try {
-        const S = await rpc("qm_staff_list");
-        body.innerHTML = `<p class="sub">المعلم هو أي منسوب فعّال في النواة. عيّن هنا وكيل شؤون الطلاب والموجه الطلابي. الوكيل هو من يستقبل الوقائع من المعلمين.</p><div style="overflow:auto"><table class="tbl"><thead><tr><th>المنسوب</th><th>الوظيفة في النواة</th><th>وكيل شؤون الطلاب</th><th>الموجه الطلابي</th></tr></thead><tbody>${S.map((s) => `<tr><td>${esc(s.name)}</td><td><small>${esc(s.job || "")}</small></td>${["agent", "counselor"].map((r) => `<td><label class="tgl"><input type="checkbox" data-s="${s.id}" data-r="${r}" ${s["is_" + r] ? "checked" : ""} aria-label="${r}"><span></span></label></td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
-        $$("[data-s]", body).forEach((el) => (el.onchange = async () => { try { await rpc("qm_set_role", { p_staff: el.dataset.s, p_role: el.dataset.r, p_on: el.checked }); toast("تم الحفظ"); } catch (e) { toast(mapErr(e), true); el.checked = !el.checked; } }));
-  } catch (e) { body.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; }
+  const body = $("#bd"); let S = [], q = "";
+  const has = (s, r) => s.roles.includes(r);
+  const load = async () => { S = await rpc("qm_staff_list"); S.forEach((s) => (s.roles = s.roles || [])); };
+  const draw = () => {
+    const rows = S.filter((s) => !q || s.name.includes(q) || String(s.job || "").includes(q));
+    const cnt = (r) => S.filter((s) => has(s, r)).length;
+    body.innerHTML = `<div class="card pm-h"><p class="sub" style="margin:0">قائمة منسوبي المدرسة الفعّالين في النواة الرقمية (${S.length}). ضع علامة صح لمنح الصلاحية أو أزلها لسحبها، ويُحفظ التغيير فوراً ويُسجَّل في سجل العمليات. مدير النواة الرقمية يملك كل الصلاحيات تلقائياً.</p>
+      <div class="pm-legend">${PERM_COLS.map(([k, n, d]) => `<span><b>${n}</b> ${esc(d)}</span>`).join("")}</div>
+      <div class="pm-bar"><input type="search" id="pq" placeholder="بحث بالاسم أو الوظيفة" aria-label="بحث بالاسم أو الوظيفة" value="${esc(q)}"><span class="sub" style="margin:0">${rows.length} منسوباً</span></div></div>
+      <div class="card mt pm-t"><div style="overflow:auto"><table class="tbl"><thead><tr><th>المنسوب</th>${PERM_COLS.map(([k, n, d, all]) => `<th title="${esc(d)}">${n}<small>${cnt(k)} من ${S.length}</small>${all ? `<span class="pm-all"><button type="button" data-all="${k}" data-on="1">الكل</button><button type="button" data-all="${k}" data-on="0">لا أحد</button></span>` : ""}</th>`).join("")}</tr></thead><tbody>
+      ${rows.map((s) => `<tr><td><b>${esc(s.name)}</b><small>${esc(s.job || "")}${s.has_account ? "" : " · بلا حساب دخول"}</small></td>${PERM_COLS.map(([k, n]) => { const lock = k === "portal_admin" && !c.isCoreAdmin;
+        return `<td><label class="tgl"><input type="checkbox" data-s="${s.id}" data-r="${k}" ${has(s, k) ? "checked" : ""} ${lock ? "disabled" : ""} aria-label="${n} – ${esc(s.name)}"><span></span></label></td>`; }).join("")}</tr>`).join("") || `<tr><td colspan="${PERM_COLS.length + 1}"><p class="sub">لا نتائج.</p></td></tr>`}</tbody></table></div></div>`;
+    let t = 0; $("#pq").oninput = (e) => { clearTimeout(t); t = setTimeout(() => { q = e.target.value.trim(); draw(); const x = $("#pq"); x.focus(); x.setSelectionRange(x.value.length, x.value.length); }, 200); };
+    $$("[data-s]", body).forEach((el) => (el.onchange = async () => {
+      const s = S.find((x) => x.id === el.dataset.s), r = el.dataset.r;
+      try { await rpc("qm_set_role", { p_staff: s.id, p_role: r, p_on: el.checked });
+        s.roles = el.checked ? [...new Set([...s.roles, r])] : s.roles.filter((x) => x !== r);
+        toast((el.checked ? "مُنحت" : "سُحبت") + " صلاحية «" + PERM_COLS.find((x) => x[0] === r)[1] + "»"); draw();
+      } catch (e) { toast(mapErr(e), true); el.checked = !el.checked; } }));
+    $$("[data-all]", body).forEach((b) => (b.onclick = async () => {
+      const r = b.dataset.all, on = b.dataset.on === "1", n = PERM_COLS.find((x) => x[0] === r)[1];
+      if (!confirm(on ? `منح صلاحية «${n}» لكل المنسوبين؟` : `سحب صلاحية «${n}» من كل المنسوبين؟`)) return;
+      try { await rpc("qm_set_role_all", { p_role: r, p_on: on }); await load(); draw(); toast(on ? "مُنحت للجميع" : "سُحبت من الجميع"); } catch (e) { toast(mapErr(e), true); } }));
+  };
+  try { await load(); draw(); } catch (e) { body.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; }
 }, { role: "admin" });
 PAGES.admin = () => openHub("admin.html");
 PAGES.adminTab = () => boot("admin.html", async (m, c) => {
