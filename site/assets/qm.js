@@ -236,12 +236,14 @@ function bindIncidents(root, reload) {
 // r: all | agent | counselor | admin
 const NAV = [
   ["dashboard.html", "مكتبي الإلكتروني", "grid", "مهامك ومتابعاتك وما يدور في المنصة الآن", "all"],
-  ["positive.html", "السلوك الإيجابي", "medal", "منح النقاط والأوسمة وسجل التعزيز والأرصدة والإنجازات", "all"],
-  ["negative.html", "السلوك السلبي", "flag", "تسجيل الوقائع السلوكية ومتابعة ما رفعتَه", "behavior"],
+  ["positive.html", "السلوك الإيجابي", "medal", "منح النقاط والأوسمة وسجل التعزيز والأرصدة والإنجازات", "pos"],
+  ["negative.html", "السلوك السلبي", "flag", "تسجيل الوقائع السلوكية ومتابعة ما رفعتَه", "neg"],
   ["students.html", "دليل المتعلمين", "users", "كل المتعلمين بالفرز حسب المرحلة والصف والفصل، والدخول المباشر إلى ملف المتعلم", "all"],
   ["support.html", "المتابعة والدعم", "help", "حالات الدعم التربوي وخطط المتابعة", "support"],
   ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
+  ["award.html", "منح الأوسمة", "crown", "أوسمة عامة يمنحها وكيل شؤون الطلاب للمتميزين سلوكاً وانضباطاً ومبادرة", "agent"],
   ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
+  ["teach.html", "مهامي معلّماً", "star", "منح النقاط وتسجيل السلوك ووقائعي وسجل التعزيز في صفحة واحدة", "teach"],
   ["reports.html", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "report"],
   ["perms.html", "الصلاحيات", "key", "صلاحيات المنسوبين في البوابة: التعزيز والسلوك والتقارير والأدوار", "admin"],
   ["admin.html", "إدارة البوابة", "gear", "النقاط والأوسمة والمستويات والتصنيفات والإعدادات وسجل العمليات", "admin"],
@@ -256,7 +258,7 @@ const HUBS = {
     ["note", "موقف إيجابي", "check", "توثيق موقف إيجابي للمتعلم دون نقاط", "reinforce"],
   ],
   "negative.html": [
-    ["behavior", "تسجيل السلوك", "plus", "واقعة سلوكية تُرفع إلى وكيل شؤون الطلاب"],
+    ["behavior", "تسجيل السلوك", "plus", "واقعة سلوكية تُرفع إلى وكيل شؤون الطلاب", "behavior"],
     ["incidents", "وقائعي", "inbox", "الوقائع التي رفعتَها وحالتها"],
   ],
   "admin.html": [
@@ -270,6 +272,11 @@ const HUBS = {
     ["audit", "سجل العمليات", "clock", "آخر العمليات المسجلة في النظام"],
   ],
 };
+// مهام الوكيل معلّماً: السلوك الإيجابي والسلبي في صفحة واحدة، حتى لا تختلط بتبويبات الوكيل
+HUBS["teach.html"] = [...HUBS["positive.html"].map((t) => t[0] === "reinforce" ? ["reinforce", "منح النقاط والأوسمة", "plus", t[3], t[4]] : t),
+  ...HUBS["negative.html"].map((t) => t[0] === "behavior" ? ["behavior", "تسجيل سلوك سلبي", "flag", t[3], t[4]] : t)];
+// ترتيب الشريط للوكيل: عمله أولاً، ثم مهامه معلّماً
+const AGENT_ORDER = ["dashboard.html", "agent.html", "support.html", "award.html", "students.html", "counselor.html", "teach.html", "reports.html", "perms.html", "admin.html"];
 const HUB_FN = { "admin.html": "adminTab" };
 function openHub(page) {
   const tabs = HUBS[page], qs = new URLSearchParams(location.search); let tab = qs.get("tab") || (page === "admin.html" ? qs.get("t") : null);
@@ -295,12 +302,15 @@ async function boot(page, render, o = {}) {
     canReinforce: who.can_reinforce !== false, canBehavior: who.can_behavior !== false, canReports: who.can_reports ?? (who.is_admin || who.is_agent || who.is_counselor),
     role: who.is_agent ? "وكيل شؤون الطلاب" : who.is_counselor ? "الموجه الطلابي" : who.is_admin ? "مدير النواة الرقمية" : "المعلم" };
   window.__qm = ctx;
-  const ok = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "report" && ctx.canReports) || (r === "reinforce" && ctx.canReinforce) || (r === "behavior" && ctx.canBehavior) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
+  const ok = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "report" && ctx.canReports) || (r === "reinforce" && ctx.canReinforce) || (r === "behavior" && ctx.canBehavior) || (r === "pos" && !ctx.isAgent) || (r === "neg" && ctx.canBehavior && !ctx.isAgent) || (r === "teach" && ctx.isAgent) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
+  // الوكيل: صفحتا السلوك الإيجابي والسلبي مدموجتان في «مهامي معلّماً»، فتُحوَّل روابطهما إليها مع الصفحة الفرعية نفسها
+  if (ctx.isAgent && hub && (hub.page === "positive.html" || hub.page === "negative.html")) { const u = new URLSearchParams(location.search); u.set("tab", hub.tab); location.replace("teach.html?" + u); return; }
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
   // الصفحات الفرعية بحسب الصلاحية: ما لا يملكه المستخدم لا يظهر، ومن فتحه برابط يُنقل إلى أول صفحة متاحة
   if (hub) { hub.tabs = hub.tabs.filter((t) => !t[4] || ok(t[4]));
     if (!hub.tabs.some((t) => t[0] === hub.tab)) { location.replace(hub.tabs.length ? hub.page + "?tab=" + hub.tabs[0][0] : "dashboard.html"); return; } }
   const items = NAV.filter((n) => ok(n[4]));
+  if (ctx.isAgent) items.sort((a, b) => AGENT_ORDER.indexOf(a[0]) - AGENT_ORDER.indexOf(b[0]));
   const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>

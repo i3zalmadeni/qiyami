@@ -34,7 +34,8 @@ const PAGES = {
     const QA = [["positive.html", "plus", "منح نقاط أو وسام", "حسب الصف والفصل", 1], ["positive.html?tab=note", "check", "موقف إيجابي", "توثيق بلا نقاط"], ["negative.html", "flag", "تسجيل سلوك سلبي", "يُرفع إلى الوكيل"], ["positive.html?tab=achievements&t=add", "trophy", "تسجيل إنجاز", "مع الشواهد"], ["students.html", "users", "دليل المتعلمين", "بحث وبطاقة المتعلم"]];
     // الاختصارات بحسب الصلاحية: التعزيز والسلوك السلبي
     for (let i = QA.length - 1; i >= 0; i--) { const h = QA[i][0]; if ((!c.canReinforce && /^positive\.html(\?tab=note)?$/.test(h)) || (!c.canBehavior && h.startsWith("negative.html"))) QA.splice(i, 1); }
-    if (c.isAgent) QA.push(["agent.html", "inbox", "صندوق الوكيل", "الوقائع الواردة"]);
+    if (c.isAgent) { QA.forEach((q) => (q[0] = q[0].replace(/^(positive|negative)\.html(\?tab=)?/, (x, pg, t) => "teach.html?tab=" + (t ? "" : pg === "positive" ? "reinforce" : "behavior")))); 
+      QA.unshift(["agent.html", "inbox", "صندوق الوكيل", "الوقائع الواردة"], ...(c.canReinforce ? [["award.html", "crown", "منح وسام", "أوسمة الوكيل العامة", 1]] : [])); }
     if (c.isCounselor) QA.push(["counselor.html", "help", "الحالات الإجرائية", "المحالة إليك"]);
     if (sup) QA.push(["support.html", "help", "المتابعة والدعم", "حالات الدعم التربوي"]);
     if (c.canReports) QA.push(["reports.html", "chart", "التقارير", "مؤشرات الفترة"]);
@@ -651,5 +652,57 @@ Object.assign(PAGES, {
     drawPk(); paint();
   }, { title: "إدارة النقاط", desc: "إضافة النقاط وتعديلها وحذفها" }),
 });
+PAGES.teach = () => openHub("teach.html");
+// منح الأوسمة لوكيل شؤون الطلاب: صفحة مستقلة بخطوات واضحة (الوسام ← المتعلمون ← السبب)، والأوسمة العامة فقط
+PAGES.award = () => boot("award.html", async (m, c) => {
+  if (!c.canReinforce) { m.innerHTML = empty("crown", "لا تملك صلاحية التعزيز", "تُمنح من صفحة «الصلاحيات» في قيمي."); return; }
+  const [BQ, F, H] = await Promise.all([sb.from("qm_badges").select("id,name_ar,criteria,points,kind,category,icon,image_path,sort_order").eq("is_active", true).neq("kind", "educational").order("sort_order"),
+    rpc("qm_pub_filters"), rpc("qm_pub_home").catch(() => ({}))]);
+  const B = (BQ.data || []).map((b) => ({ ...b, image: b.image_path }));
+  const st = { badge: null, grade: "", section: "", rows: [], sel: new Map() };
+  const mine = ((H && H.last_badges) || []).filter((x) => x.by === c.who.name).slice(0, 8);
+  m.innerHTML = `<section class="aw-hero"><span class="aw-ic">${ico("crown")}</span><div><h2>منح الأوسمة</h2><p>كرّم المتميزين سلوكاً وانضباطاً ومبادرة بأوسمة المدرسة العامة. اختر الوسام، ثم المتعلمين، ثم اكتب سبب المنح.</p></div></section>
+    <section class="aw-step"><h3><i>1</i>اختر الوسام</h3><div class="aw-b" id="awB">${B.length ? B.map((b) => `<button type="button" class="aw-card" data-b="${b.id}" aria-pressed="false">${medal(b, "lg")}<b>${esc(b.name_ar)}</b><small>${esc(b.criteria || b.category || "")}</small>${b.points ? `<em><bdi>+${b.points}</bdi> نقطة</em>` : ""}</button>`).join("") : '<p class="sub">لا أوسمة عامة فعّالة. تُضاف من «إدارة البوابة» ← الأوسمة.</p>'}</div></section>
+    <section class="aw-step"><h3><i>2</i>اختر المتعلمين</h3>
+      <div class="gr-steps"><div class="gr-step"><span>الصف</span><div class="gr-chips" id="gG">${F.grades.map((g) => `<button type="button" data-g="${esc(g.code)}" aria-pressed="false">${esc(g.name)}</button>`).join("")}</div></div>
+        <div class="gr-step" id="gSw" hidden><span>الفصل</span><div class="gr-chips" id="gS"></div></div>
+        <div class="gr-step"><span>أو ابحث عن متعلم من أي فصل</span><div id="pk"></div></div></div>
+      <div id="ro" class="mt"></div></section>
+    <section class="aw-step"><h3><i>3</i>سبب المنح</h3><input id="why" maxlength="300" placeholder="مثال: التزامه بالانضباط طوال الشهر، مبادرته في خدمة زملائه"></section>
+    <div class="aw-bar" id="bar"></div>
+    ${mine.length ? `<h3 class="sec">آخر ما منحتُه من أوسمة</h3><div class="card">${mine.map((x) => `<div class="fd"><span class="fd-ic b">${ico("medal")}</span><div><b><a href="student.html?id=${x.id}">${esc(shortName(x.name))}</a></b> نال «${esc(x.badge)}»<small>${klass(x)} · ${esc(ago(x.at))}</small></div></div>`).join("")}</div>` : ""}`;
+  const bar = () => { const b = B.find((x) => x.id === st.badge), n = st.sel.size;
+    $("#bar").innerHTML = `<div class="aw-sum">${b ? medal(b, "sm") : `<span class="aw-q">${ico("crown")}</span>`}<div><b>${b ? "وسام «" + esc(b.name_ar) + "»" : "لم تختر الوسام بعد"}</b><small>${n ? n + (n > 10 ? " متعلماً" : n > 2 ? " متعلمين" : n === 2 ? " متعلمان" : " متعلم") : "لم تختر متعلمين بعد"}</small></div></div>
+      ${n ? `<div class="aw-who">${[...st.sel.values()].map((s) => `<span>${esc(shortName(s.name))}<button type="button" data-rm="${s.id}" aria-label="إزالة ${esc(s.name)}">×</button></span>`).join("")}</div>` : ""}
+      <button class="btn aw-go" id="go" type="button" ${b && n ? "" : "disabled"}>${ico("crown")}منح الوسام</button>`;
+    $$("[data-rm]", $("#bar")).forEach((x) => (x.onclick = () => { st.sel.delete(x.dataset.rm); drawRoster(); bar(); }));
+    $("#go").onclick = give; };
+  const drawRoster = () => { const ro = $("#ro");
+    if (!st.section) { ro.innerHTML = ""; return; }
+    if (!st.rows.length) { ro.innerHTML = empty("users", "لا متعلمين في هذا الفصل"); return; }
+    const all = st.rows.every((s) => st.sel.has(s.id));
+    ro.innerHTML = `<div class="aw-ro"><label class="aw-all"><input type="checkbox" id="all" ${all ? "checked" : ""}>تحديد كل الفصل (${st.rows.length})</label>${st.rows.map((s) => { const has = st.badge && (s.badges || []).includes(st.badge);
+      return `<label class="aw-s${st.sel.has(s.id) ? " on" : ""}"><input type="checkbox" data-s="${s.id}" ${st.sel.has(s.id) ? "checked" : ""}><span>${esc(s.name)}${has ? `<small>لديه هذا الوسام</small>` : ""}</span></label>`; }).join("")}</div>`;
+    $("#all").onchange = (e) => { st.rows.forEach((s) => (e.target.checked ? st.sel.set(s.id, s) : st.sel.delete(s.id))); drawRoster(); bar(); };
+    $$("[data-s]", ro).forEach((x) => (x.onchange = () => { const s = st.rows.find((r) => r.id === x.dataset.s); x.checked ? st.sel.set(s.id, s) : st.sel.delete(s.id); drawRoster(); bar(); })); };
+  const loadRoster = async () => { if (!st.section) return drawRoster(); $("#ro").innerHTML = '<p class="sub">جارٍ التحميل…</p>'; try { st.rows = await rpc("qm_section_roster", { p_section: st.section }); drawRoster(); } catch (e) { $("#ro").innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; } };
+  $$("#awB [data-b]").forEach((x) => (x.onclick = () => { st.badge = x.dataset.b; $$("#awB [data-b]").forEach((y) => y.setAttribute("aria-pressed", y === x)); drawRoster(); bar(); }));
+  $$("#gG button").forEach((x) => (x.onclick = () => { st.grade = x.dataset.g; st.section = ""; st.rows = []; $$("#gG button").forEach((y) => y.setAttribute("aria-pressed", y === x));
+    const S = F.sections.filter((z) => z.grade === st.grade); $("#gSw").hidden = false;
+    $("#gS").innerHTML = S.length ? S.map((z) => `<button type="button" data-s="${z.id}" aria-pressed="false">${esc(z.name)}</button>`).join("") : '<span class="sub">لا فصول لهذا الصف.</span>';
+    $$("#gS button").forEach((y) => (y.onclick = () => { st.section = y.dataset.s; $$("#gS button").forEach((w) => w.setAttribute("aria-pressed", w === y)); loadRoster(); })); drawRoster(); }));
+  studentPicker($("#pk"), (s) => { st.sel.set(s.id, s); bar(); drawRoster(); }, { placeholder: "اكتب حرفين على الأقل من الاسم أو الرقم" });
+  async function give() {
+    const b = B.find((x) => x.id === st.badge), studs = [...st.sel.values()], go = $("#go"); if (!b || !studs.length) return;
+    go.disabled = true;
+    try { const R = await rpc("qm_grant_bulk", { p_students: studs.map((s) => s.id), p_kind: "badge", p_ref: b.id, p_points: 0, p_note: $("#why").value.trim() || null });
+      const sk = R.skipped || [], skId = new Set(sk.map((x) => x.id));
+      if (R.ok) notice(`تم منح وسام «${b.name_ar}» بنجاح`, studs.filter((s) => !skId.has(s.id)).map((s) => [s.name, `نال وسام «${b.name_ar}»`]), "ok");
+      if (sk.length) notice(`لم يُمنح الوسام لـ ${sk.length === 1 ? "متعلم واحد" : sk.length + " متعلمين"}`, sk.map((x) => [x.name, skipWhy(x.why, "badge")]));
+      st.sel.clear(); $("#why").value = ""; await loadRoster(); bar();
+    } catch (e) { notice("لم يُمنح الوسام", [[null, mapErr(e)]]); go.disabled = false; }
+  }
+  bar();
+}, { role: "agent" });
 PAGES.positive = () => openHub("positive.html");
 PAGES.negative = () => openHub("negative.html");

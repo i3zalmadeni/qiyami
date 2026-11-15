@@ -573,3 +573,37 @@ main.hubmain{padding-top:18px}
 .ir-kv dt{font-size:.78rem;color:var(--ink2)}.ir-kv dd{margin:2px 0 0;font-weight:600}
 .ir-t{margin-top:12px}.ir-t small{color:var(--ink2);font-size:.78rem}.ir-t p{white-space:pre-wrap;margin:4px 0 0;line-height:1.8;background:var(--bg,#f6fafb);border-radius:12px;padding:10px 14px}
 @media (max-width:760px){.ir-g3,.ir-g2,.ir-v{grid-template-columns:1fr}.ir-sec{padding:14px}}
+
+/* ===== منح الأوسمة (وكيل شؤون الطلاب): هوية ذهبية تميّزها عن منح المعلم ===== */
+.aw-hero{display:flex;align-items:center;gap:16px;padding:20px 22px;border-radius:22px;background:linear-gradient(135deg,#17414f,#0f2c37);color:#fff;position:relative;overflow:hidden}
+.aw-hero::after{content:"";position:absolute;inset-inline-end:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(240,179,74,.35),transparent 70%)}
+.aw-hero h2{margin:0;font-size:1.3rem}.aw-hero p{margin:4px 0 0;color:#cfe3e8;font-size:.92rem;max-width:720px}
+.aw-ic{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#e9a62b,#f6c25e);flex:none;box-shadow:0 6px 18px rgba(233,166,43,.35)}
+.aw-ic .ico{width:30px;height:30px;stroke:#3b2a06;margin:0}
+.aw-step{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px 20px}
+.aw-step h3{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:1.02rem}
+.aw-step h3 i{font-style:normal;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#e9a62b,#f2c75c);color:#3b2a06;font-weight:800;font-size:.85rem}
+.aw-step>input{width:100%;margin:0}
+.aw-b{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.aw-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:16px 10px 14px;border:1px solid var(--line);border-radius:18px;background:var(--surface);font:inherit;color:var(--ink);cursor:pointer;transition:.15s}
+.aw-card:hover{border-color:#e9a62b;transform:translateY(-2px)}
+.aw-card[aria-pressed="true"]{border-color:#e9a62b;background:#fff8ea;box-shadow:0 0 0 2px #e9a62b inset,0 8px 20px rgba(233,166,43,.18)}
+.aw-card b{font-size:.95rem}.aw-card small{color:var(--ink2);font-size:.78rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.aw-card em{font-style:normal;font-size:.75rem;font-weight:700;color:#b7791f}
+.aw-ro{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.aw-all{grid-column:1/-1;display:inline-flex;align-items:center;gap:8px;font-weight:700;cursor:pointer}
+.aw-s{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:.12s}
+.aw-s:hover{border-color:#e9a62b}.aw-s.on{background:#fff8ea;border-color:#e9a62b}
+.aw-s span{display:flex;flex-direction:column}.aw-s small{color:#b7791f;font-size:.74rem;font-weight:700}
+.aw-bar{position:sticky;bottom:12px;z-index:20;margin-top:16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:14px 18px;border-radius:20px;background:#0f2c37;color:#fff;box-shadow:0 10px 30px rgba(6,25,35,.25)}
+.aw-sum{display:flex;align-items:center;gap:10px}.aw-sum small{display:block;color:#cfe3e8;font-size:.8rem}
+.aw-q{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;border:2px dashed rgba(255,255,255,.35)}.aw-q .ico{margin:0}
+.aw-who{flex:1;display:flex;flex-wrap:wrap;gap:6px;min-width:0;max-height:76px;overflow:auto}
+.aw-who span{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border-radius:999px;padding:3px 4px 3px 10px;font-size:.8rem}
+.aw-who button{border:0;background:rgba(255,255,255,.18);color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;line-height:1}
+.aw-go{margin-inline-start:auto;background:linear-gradient(135deg,#e9a62b,#f6c25e)!important;color:#3b2a06!important;border:0}
+.aw-go:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:640px){.aw-hero{padding:16px}.aw-b{grid-template-columns:repeat(2,1fr)}.aw-go{width:100%;justify-content:center}}
+.aw-hero h2{color:#fff}.aw-hero>div{position:relative;z-index:1}
+.aw-s input,.aw-all input{width:18px!important;height:18px;flex:none;margin:0;accent-color:#e9a62b}
+.aw-s span{flex:1;min-width:0}
