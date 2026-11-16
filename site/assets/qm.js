@@ -327,6 +327,10 @@ async function boot(page, render, o = {}) {
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <main class="wrap" id="main"></main>${footerHTML}`;
   bindNav();
+  if (window.PK && page === "admin.html") PK.mountAdminSection({ sb, system: "qiyami", central: false, after: "#main" });
+  if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
+    PK.mountAnnouncements({ sb, system: "qiyami", page: page === "dashboard.html" ? "home" : "all", before: ".pagebar" });
+    if (page === "dashboard.html") PK.welcome("#main", { mode: "before", sb, name: who.name, role: ctx.role }); }
   // القائمة الموحدة: شريط أفقي واحد في كل الأحوال (كبقية أنظمة النواة)، يُمرَّر جانبياً إذا لم تتسع الصفحات، والصفحة الحالية تظهر في مجال الرؤية
   { const a = $(".dnav-in a.on"); if (a) a.scrollIntoView({ block: "nearest", inline: "center" }); }
   $("#pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-nu-latn", { hour: "numeric", minute: "2-digit", timeZone: TZ });
