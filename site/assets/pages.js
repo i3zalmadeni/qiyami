@@ -53,7 +53,7 @@ const PAGES = {
     const queue = (t, href, rows, html) => (rows && rows.length ? `<div class="hd"><h3 class="sec">${t}</h3><a href="${href}">عرض الكل</a></div>${rows.map(html).join("")}` : "");
     const pl = (v, t) => `<div><b>${v ?? 0}</b><span>${t}</span></div>`;
     const sens = d.incidents_new !== null && d.incidents_new !== undefined;
-    m.innerHTML = `<section class="dash-hero"><div><h2>ملخص اليوم</h2><p>${esc(fmtDay(todayISO()))} · ${esc(fmtHijri(todayISO()))}</p></div><span class="yr"><i></i>${tasks ? `${tasks} بانتظار إجرائك` : "لا مهام معلّقة"}</span></section>
+    m.innerHTML = `
     <div class="qa">${QA.map(([h, i, t, sb2, pri]) => `<a class="qa-i ${pri ? "pri" : ""}" href="${h}"><span class="ic">${ico(i)}</span><span>${t}<small>${sb2}</small></span></a>`).join("")}</div>
     <div class="desk"><div>
       <h3 class="sec">بانتظار إجرائك</h3>
