@@ -92,7 +92,7 @@
 .hb-ini{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.95rem;color:#fff;background:linear-gradient(135deg,var(--hb-petrol),var(--hb-teal));flex:none}
 
 /* المعلمون الأكثر منحاً */
-.hb-gv{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.hb-gv{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:14px}
 .hb-g{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px 16px 16px;text-align:center;box-shadow:var(--shadow)}
 .hb-g[data-first]{border-color:var(--hb-gold);background:linear-gradient(180deg,color-mix(in srgb,var(--hb-gold) 12%,var(--surface)),var(--surface) 60%)}
 .hb-g .n{position:absolute;inset-block-start:10px;inset-inline-start:12px;font-family:var(--hb-serif);font-size:1.2rem;font-weight:700;color:var(--hb-goldink)}
@@ -118,7 +118,7 @@
 .hb-pod.lite .hb-pc small,.hb-pod.lite .hb-pc .v em{color:var(--muted)}
 .hb-pod.lite .hb-pc .v{color:var(--hb-goldink)}
 .hb-pod.lite .hb-seal i{background:var(--surface)}
-.hb-dir{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:14px}
+.hb-dir{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:14px;margin-top:14px}
 .hb-st{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:14px;border-radius:18px;background:var(--surface);border:1px solid var(--line);text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
 .hb-st:hover{border-color:var(--hb-gold);transform:translateY(-2px)}
 .hb-st b{display:block;color:var(--ink);font-size:.96rem;line-height:1.5}
