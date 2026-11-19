@@ -75,4 +75,4 @@ pubInit("leaderboard.html");
   if (more) more.addEventListener("click", () => { const open = more.getAttribute("aria-expanded") !== "true"; root.querySelectorAll(".ms-tl li").forEach((li, i) => { if (i >= SHOW) li.hidden = !open; }); more.setAttribute("aria-expanded", open); more.textContent = open ? "عرض أقل" : `عرض كل السجل (${P.length})`; });
   if (!reduce) root.querySelectorAll("[data-to]").forEach((el) => { const to = +el.dataset.to, t0 = performance.now(); if (!to) return; const step = (t) => { const k = Math.min(1, (t - t0) / 1100); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); }; el.textContent = 0; requestAnimationFrame(step); });
 })();
-</script></body></html>
+</script><script src="https://i3zalmadeni.github.io/digital-core/assets/report-kit.js?v=20261120a"></script><script>window.ReportKit&&ReportKit.install({system:"student_incentives",systemName:"قيمي",root:["#main","main"]});</script></body></html>
