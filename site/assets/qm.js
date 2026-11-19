@@ -346,7 +346,7 @@ async function boot(page, render, o = {}) {
     if (page === "dashboard.html") PK.welcome("#main", { mode: "before", sb, name: who.name, role: ctx.role }); }
   // القائمة الموحدة: شريط أفقي واحد في كل الأحوال (كبقية أنظمة النواة)، يُمرَّر جانبياً إذا لم تتسع الصفحات، والصفحة الحالية تظهر في مجال الرؤية
   { const a = $(".dnav-in a.on"); if (a) a.scrollIntoView({ block: "nearest", inline: "center" }); }
-  $("#pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-nu-latn", { hour: "numeric", minute: "2-digit", timeZone: TZ });
+  $("#pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-ca-gregory-nu-latn", { hour: "numeric", minute: "2-digit", timeZone: TZ });
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات من جدول qm_notifications (توجَّه للمعنيين فقط)، والمقروء يُحفظ في القاعدة

@@ -24,7 +24,7 @@
 pubInit("index.html");
 (async () => {
   const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches, $i = (id) => document.getElementById(id);
-  const num = (v) => (+v || 0).toLocaleString("ar-EG-u-nu-latn");
+  const num = (v) => (+v || 0).toLocaleString("ar-SA-u-ca-gregory-nu-latn");
   const count = (el, to) => { to = +to || 0; if (reduce || !to || el.dataset.v == to) { el.textContent = num(to); el.dataset.v = to; return; } el.dataset.v = to; const t0 = performance.now(); const step = (t) => { const k = Math.min(1, (t - t0) / 1200); el.textContent = num(Math.round(to * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); };
   const fresh = (t) => (Date.now() - new Date(t) < 24 * 3600e3 ? '<span class="hb-new">جديد</span>' : "");
   const title = ["الأول", "الثاني", "الثالث"];
