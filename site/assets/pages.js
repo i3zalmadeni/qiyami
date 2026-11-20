@@ -28,7 +28,7 @@ const PAGES = {
     if (c.isAdmin) add(x.achievements_pending, "clock", "إنجازات بانتظار التحقق", "سجّلها المعلمون وتنتظر التوثيق", "positive.html?tab=achievements&t=review");
     if (sup) { add(x.support_new, "help", "حالات دعم جديدة", "فُتحت ولم تُستلم بعد", "support.html"); add(x.support_due, "calendar", "متابعات دعم حان موعدها", "حالات تجاوزت موعد متابعتها", "support.html"); }
     const tasks = T.reduce((n, t) => n + (t.ic === "hourglass" ? 0 : t.n), 0); // المتأخرة محسوبة ضمن الجديدة
-    const QA = [["positive.html", "plus", "منح نقاط أو وسام", "حسب الصف والفصل", 1], ["positive.html?tab=note", "check", "موقف إيجابي", "توثيق بلا نقاط"], ["negative.html", "flag", "تسجيل سلوك سلبي", "يُرفع إلى الوكيل"], ["positive.html?tab=achievements&t=add", "trophy", "تسجيل إنجاز", "مع الشواهد"], ["students.html", "users", "دليل المتعلمين", "بحث وبطاقة المتعلم"]];
+    const QA = [["positive.html", "plus", "منح نقاط أو وسام", "حسب الصف والفصل", 1], ["negative.html", "flag", "تسجيل سلوك سلبي", "يُرفع إلى الوكيل"], ["positive.html?tab=achievements&t=add", "trophy", "تسجيل إنجاز", "مع الشواهد"], ["students.html", "users", "دليل المتعلمين", "بحث وبطاقة المتعلم"]];
     // الاختصارات بحسب الصلاحية: التعزيز والسلوك السلبي
     for (let i = QA.length - 1; i >= 0; i--) { const h = QA[i][0]; if ((!c.canReinforce && /^positive\.html(\?tab=note)?$/.test(h)) || (!c.canBehavior && h.startsWith("negative.html"))) QA.splice(i, 1); }
     if (c.isAgent) { QA.forEach((q) => (q[0] = q[0].replace(/^(positive|negative)\.html(\?tab=)?/, (x, pg, t) => "teach.html?tab=" + (t ? "" : pg === "positive" ? "reinforce" : "behavior")))); 
@@ -69,6 +69,8 @@ const PAGES = {
   }),
 
   reinforce: () => boot("positive.html", async (m, c) => {
+    // من لا يمنح (المنسق في لوحته): الصفحة سجل التعزيز وحده
+    if (!c.canReinforce) { m.innerHTML = '<div id="rc"></div>'; await reinfLog($("#rc"), c, false); return; }
     const [T, F, BQ, SQ] = await Promise.all([types("qm_reinforcement_types"), rpc("qm_pub_filters"),
       sb.from("qm_badges").select("id,name_ar,criteria,points,kind,category,icon,image_path").eq("is_active", true).order("sort_order"), sb.from("qm_settings").select("max_points_per_award").single()]);
     const B = (BQ.data || []).map((b) => ({ ...b, image: b.image_path })), maxP = SQ.data?.max_points_per_award || 50;
@@ -80,8 +82,9 @@ const PAGES = {
         <div class="gr-step" id="gSw" hidden><span>الفصل</span><div class="gr-chips" id="gS"></div></div>
         <div class="acts"><button class="btn sec" id="one" type="button">${ico("search")}منح متعلم واحد بالبحث عن اسمه</button></div></div>
       <div id="ro" class="mt">${empty("users", "اختر الصف ثم الفصل", "تظهر أسماء متعلمي الفصل، وبجوار كل اسم زر النقاط وزر الوسام.")}</div>
-      <h3 class="sec">آخر ما منحتُه من نقاط</h3><div id="rc"></div>`;
-    const loadRec = async () => { const r = await rpc("qm_reinforcements_list", { p_mine: true, p_limit: 8 }); $("#rc").innerHTML = r.length ? r.map(reinfItem).join("") : '<p class="sub">لم تمنح نقاطاً بعد.</p>'; bindVoid($("#rc"), async () => { await loadRec(); await loadRoster(); }, c); };
+      <h3 class="sec">سجل التعزيز</h3><div id="rc"></div>`;
+    let logReload = null;
+    const loadRec = async () => { if (logReload) return logReload(); logReload = await reinfLog($("#rc"), c, true, () => loadRoster()); };
 
     // نافذة المنح: تبويب للنقاط وتبويب للوسام، لمتعلم واحد أو لمجموعة
     const grant = (studs, kind) => {
@@ -149,16 +152,8 @@ const PAGES = {
     await loadRec();
   }),
 
-  note: () => boot("positive.html", async (m) => {
-    const P = await types("qm_behavior_categories", (x) => x.kind === "positive"), sp = { s: null };
-    m.innerHTML = `<form class="card form" id="fp"><div><label>المتعلم</label><div id="pkp"></div></div><div><label for="cp">التصنيف</label><select id="cp">${opt(P)}</select></div>
-      <div><label for="dp">وصف الموقف</label><textarea id="dp" maxlength="500" required></textarea></div><p class="err" id="ep" role="alert"></p>
-      <div class="acts"><button class="btn" id="gp">حفظ الموقف الإيجابي</button></div><p class="sub">لا يشترط أن ينتج عن الموقف نقاط. للتعزيز بنقاط استخدم «منح النقاط والأوسمة».</p></form>`;
-    pickerField($("#pkp"), sp, "s");
-    $("#fp").onsubmit = async (ev) => { ev.preventDefault(); $("#ep").textContent = ""; if (!sp.s) { $("#ep").textContent = "اختر المتعلم أولاً."; return; } $("#gp").disabled = true;
-      try { await rpc("qm_record_positive", { p_student: sp.s.id, p_category: $("#cp").value, p_description: $("#dp").value }); toast("تم حفظ الموقف الإيجابي"); sp.s = null; pickerField($("#pkp"), sp, "s"); $("#dp").value = ""; }
-      catch (e) { $("#ep").textContent = mapErr(e); } $("#gp").disabled = false; };
-  }),
+  // «موقف إيجابي» حُذف: منح النقاط أو الوسام هو توثيق الموقف الإيجابي (قرار المستخدم)
+  note: () => location.replace(location.pathname.split("/").pop() + "?tab=reinforce"),
 
   behavior: () => boot("negative.html", async (m, c) => {
     const Ng = await types("qm_behavior_categories", (x) => x.kind === "negative"), sn = { s: null };
@@ -199,14 +194,8 @@ const PAGES = {
     m.appendChild(root); bindIncidents(root, draw); await draw();
   }),
 
-  reinforcements: () => boot("positive.html", async (m, c) => {
-    let mine = false, q = "";
-    m.innerHTML = `<div class="tabs"><button data-m="0" class="on">كل التعزيزات</button><button data-m="1">ما سجّلتُه أنا</button></div><div class="form" style="max-width:420px;margin-bottom:12px"><input id="q" type="search" placeholder="تصفية بالاسم أو الصف" aria-label="تصفية"></div><div id="li"></div>`;
-    const draw = async () => { let r = await rpc("qm_reinforcements_list", { p_mine: mine, p_limit: 300 }); const k = q.trim(); if (k) r = r.filter((x) => (x.student + x.grade + x.type).includes(k));
-      $("#li").innerHTML = r.length ? r.map(reinfItem).join("") : empty("list", "لا تعزيزات مطابقة"); bindVoid($("#li"), draw, c); };
-    $$(".tabs button", m).forEach((b) => (b.onclick = () => { mine = b.dataset.m === "1"; $$(".tabs button", m).forEach((x) => x.classList.toggle("on", x === b)); draw(); }));
-    $("#q").oninput = (e) => { q = e.target.value; draw(); }; await draw();
-  }),
+  // سجل التعزيز صار داخل «منح النقاط والأوسمة»
+  reinforcements: () => location.replace(location.pathname.split("/").pop() + "?tab=reinforce"),
 
   balances: () => boot("positive.html", async (m) => {
     const ex = await rpc("qm_excellence", { p_limit: 10 });
@@ -291,6 +280,17 @@ const PAGES = {
   }, { role: "counselor" }),
 };
 
+// سجل التعزيز: «ما سجّلتُه» و«كل التعزيزات» مع التصفية والحذف؛ يعيد دالة لإعادة التحميل
+async function reinfLog(root, c, mineFirst, after) {
+  let mine = !!mineFirst, q = "";
+  root.innerHTML = `<div class="tabs"><button data-m="1" class="${mine ? "on" : ""}">ما سجّلتُه أنا</button><button data-m="0" class="${mine ? "" : "on"}">كل التعزيزات</button></div><div class="form" style="max-width:420px;margin-bottom:12px"><input type="search" data-q placeholder="تصفية بالاسم أو الصف" aria-label="تصفية"></div><div data-li></div>`;
+  const li = $("[data-li]", root);
+  const draw = async () => { let r = await rpc("qm_reinforcements_list", { p_mine: mine, p_limit: 300 }); const k = q.trim(); if (k) r = r.filter((x) => (x.student + x.grade + x.type).includes(k));
+    li.innerHTML = r.length ? r.map(reinfItem).join("") : empty("list", mine ? "لم تمنح نقاطاً بعد" : "لا تعزيزات مطابقة"); bindVoid(li, async () => { await draw(); after && after(); }, c); };
+  $$(".tabs button", root).forEach((b) => (b.onclick = () => { mine = b.dataset.m === "1"; $$(".tabs button", root).forEach((x) => x.classList.toggle("on", x === b)); draw(); }));
+  $("[data-q]", root).oninput = (e) => { q = e.target.value; draw(); };
+  await draw(); return draw;
+}
 function reinfItem(r) {
   return `<div class="item ${r.voided_at ? "void" : ""}"><div class="row2"><div><b><a href="#" data-c="${r.student_id}">${esc(r.student)}</a></b> · ${esc(r.type)}<br><small>${esc(r.grade || "")}${r.section ? " · " + esc(r.section) : ""} · ${esc(r.given_by)} · ${esc(fmtT(r.created_at))}</small></div>
   <div class="acts">${r.points ? pts(r.points) : '<span class="badge">بلا نقاط</span>'}${r.voided_at ? '<span class="badge bad">ملغى</span>' : r.mine || window.__qmAdmin ? `<button class="btn sm sec" data-void="${r.id}">إلغاء</button>` : ""}</div></div>

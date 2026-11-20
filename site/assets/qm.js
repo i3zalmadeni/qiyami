@@ -256,10 +256,8 @@ const NAV = [
 // الصفحات المجمّعة: صفحة واحدة في القائمة تندرج تحتها صفحات فرعية (?tab=)
 const HUBS = {
   "positive.html": [
-    ["reinforce", "منح النقاط والأوسمة", "plus", "اختر الصف والفصل ثم امنح فردياً أو جماعياً", "reinforce"],
+    ["reinforce", "منح النقاط والأوسمة", "plus", "اختر الصف والفصل ثم امنح فردياً أو جماعياً، وتحتها سجل التعزيز"],
     ["achievements", "الإنجاز والمواهب", "star", "إنجازات المتعلمين ومواهبهم ومعرض التميز"],
-    ["note", "موقف إيجابي", "check", "توثيق موقف إيجابي للمتعلم دون نقاط", "reinforce"],
-    ["reinforcements", "سجل التعزيز", "calendar", "سجل التعزيزات ودفتر النقاط"],
   ],
   "negative.html": [
     ["behavior", "تسجيل السلوك", "plus", "واقعة سلوكية تُرفع إلى وكيل شؤون الطلاب", "behavior"],
@@ -292,6 +290,7 @@ function openHub(page) {
   // الأرصدة في «دليل المتعلمين»، والمتصدرون في الرئيسية: لا تبويب مستقل للأرصدة
   if ((page === "positive.html" || page === "teach.html") && tab === "balances") { location.replace("students.html"); return; }
   // تصحيح النقاط صار داخل ملف المتعلم
+  if ((page === "positive.html" || page === "teach.html") && (tab === "note" || tab === "reinforcements")) { const u = new URLSearchParams(location.search); u.set("tab", "reinforce"); location.replace(page + "?" + u); return; }
   if ((page === "positive.html" || page === "teach.html") && tab === "points") { location.replace("learner.html"); return; }
   if (page === "admin.html" && tab === "roles") { location.replace("admin.html?tab=perms"); return; }   // الأدوار في «الصلاحيات»
   // الروابط القديمة لإدارة البوابة: تصحيح النقاط في السلوك الإيجابي، وسجل العمليات في الرئيسية، وحالات الواقعة مع التصنيفات
@@ -334,6 +333,8 @@ async function boot(page, render, o = {}) {
   if (!hub && page === "support.html" && (ctx.isAgent || ctx.isCounselor)) { location.replace((ctx.isAgent ? "agent.html" : "counselor.html") + "?tab=support" + (new URLSearchParams(location.search).get("i") ? "&i=" + new URLSearchParams(location.search).get("i") : "")); return; }
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
   // الصفحات الفرعية بحسب الصلاحية: ما لا يملكه المستخدم لا يظهر، ومن فتحه برابط يُنقل إلى أول صفحة متاحة
+  // من لا يمنح يرى «منح النقاط والأوسمة» باسم «سجل التعزيز»
+  if (hub && !ctx.canReinforce) hub.tabs = hub.tabs.map((t) => t[0] === "reinforce" ? ["reinforce", "سجل التعزيز", "calendar", "سجل التعزيزات ودفتر النقاط", t[4]] : t);
   if (hub) { hub.tabs = hub.tabs.filter((t) => !t[4] || ok(t[4]));
     if (!hub.tabs.some((t) => t[0] === hub.tab)) { location.replace(hub.tabs.length ? hub.page + "?tab=" + hub.tabs[0][0] : "dashboard.html"); return; } }
   { const ne = NAV.find((n) => n[0] === page); if (ne && !ok(ne[4]) && (ctx.canSwitch || hub)) { location.replace("dashboard.html"); return; } }   // صفحة لا تخص الدور المختار
