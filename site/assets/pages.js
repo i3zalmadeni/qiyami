@@ -16,10 +16,7 @@ const PAGES = {
     const nz = (p) => p.catch(() => null);
     const [d, x0, H0, mine, myR, inbox, cases, review] = await Promise.all([
       rpc("qm_dashboard", { p_days: 14 }), nz(rpc("qm_dashboard_ext")), nz(rpc("qm_pub_home")),
-      rpc("qm_incidents_list", { p_scope: "mine", p_limit: 5 }), nz(rpc("qm_reinforcements_list", { p_mine: true, p_limit: 5 })),
-      c.isAgent ? nz(rpc("qm_incidents_list", { p_scope: "inbox", p_limit: 5 })) : null,
-      c.isCounselor ? nz(rpc("qm_incidents_list", { p_scope: "counselor", p_limit: 40 })) : null,
-      c.isAdmin ? nz(rpc("qm_achievements_list", { p_scope: "review", p_limit: 5 })) : null,
+      null, null, null, null, null,
     ]);
     const x = x0 || {}, H = H0 || {}, hs = H.stats || {}, sup = c.isAgent || c.isCounselor;
     // المهام: ما ينتظر إجراء صاحب المكتب نفسه بحسب دوره
@@ -55,17 +52,10 @@ const PAGES = {
     const pl = (v, t) => `<div><b>${v ?? 0}</b><span>${t}</span></div>`;
     const sens = d.incidents_new !== null && d.incidents_new !== undefined;
     m.innerHTML = `
-    <div class="qa">${QA.map(([h, i, t, sb2, pri]) => `<a class="qa-i ${pri ? "pri" : ""}" href="${h}"><span class="ic">${ico(i)}</span><span>${t}<small>${sb2}</small></span></a>`).join("")}</div>
+    <!-- اختصارات القائمة والقوائم المكررة حُذفت: المكتب للأعداد التي تنتظر الإجراء وما يدور في المنصة -->
     <div class="desk"><div>
       <h3 class="sec">بانتظار إجرائك</h3>
       ${T.length ? T.map((t) => `<a class="task" href="${t.h}"><span class="n">${t.n}</span><div><b>${t.t}</b><small>${t.s}</small></div><span class="go">فتح</span></a>`).join("") : empty("check", "لا شيء ينتظرك الآن", "تظهر هنا الوقائع والإنجازات والحالات التي تحتاج إجراءً منك.")}
-      ${queue("الوارد إلى صندوق الوكيل", "agent.html", inbox, incidentCard)}
-      ${queue("حالات محالة إليك", "counselor.html", openCases, incidentCard)}
-      ${queue("إنجازات تنتظر توثيقك", "positive.html?tab=achievements&t=review", review, achItem)}
-      <div class="hd"><h3 class="sec">وقائع رفعتُها</h3><a href="negative.html?tab=incidents">عرض الكل (${d.my_incidents ?? 0})</a></div>
-      ${mine.length ? mine.map(incidentCard).join("") : '<p class="sub">لم ترفع وقائع بعد.</p>'}
-      <div class="hd"><h3 class="sec">آخر ما منحتُه</h3><a href="positive.html?tab=reinforcements">سجل التعزيز (${d.my_reinforcements ?? 0})</a></div>
-      ${myR && myR.length ? myR.map((r) => `<div class="item ${r.voided_at ? "void" : ""}"><div class="row2"><div><b><a href="student.html?id=${r.student_id}">${esc(r.student)}</a></b> · ${esc(r.type)}<br><small>${esc(r.grade || "")}${r.section ? " · " + esc(r.section) : ""} · ${esc(ago(r.created_at))}</small></div>${r.voided_at ? '<span class="badge bad">ملغى</span>' : r.points ? pts(r.points) : '<span class="badge">بلا نقاط</span>'}</div></div>`).join("") : '<p class="sub">لم تمنح نقاطاً بعد. ابدأ من «منح نقاط أو وسام».</p>'}
     </div><aside>
       <h3 class="sec">ما يدور في المنصة</h3>
       <div class="card"><div class="pulse">${pl(hs.week, "عملية منح هذا الأسبوع")}${pl(hs.month_points, "نقطة هذا الشهر")}${pl(hs.students_awarded, "متعلماً نال تعزيزاً")}${pl(d.badges, "وساماً ممنوحاً")}${pl(x.achievements, "إنجازاً موثقاً")}${pl(x.talents, "موهبة مرصودة")}</div></div>
@@ -663,7 +653,9 @@ Object.assign(PAGES, {
 });
 PAGES.teach = () => openHub("teach.html");
 // منح الأوسمة لوكيل شؤون الطلاب: صفحة مستقلة بخطوات واضحة (الوسام ← المتعلمون ← السبب)، والأوسمة العامة فقط
-PAGES.award = () => boot("award.html", async (m, c) => {
+// «منح الأوسمة» للوكيل حُذفت: المنح من «مهامي معلّماً ← منح النقاط والأوسمة» (الأوسمة كلها، فردياً أو للفصل)
+PAGES.award = () => location.replace("teach.html?tab=reinforce");
+PAGES.awardOld = () => boot("award.html", async (m, c) => {
   if (!c.canReinforce) { m.innerHTML = empty("crown", "لا تملك صلاحية التعزيز", "تُمنح من صفحة «الصلاحيات» في قيمي."); return; }
   const [BQ, F, H] = await Promise.all([sb.from("qm_badges").select("id,name_ar,criteria,points,kind,category,icon,image_path,sort_order").eq("is_active", true).neq("kind", "educational").order("sort_order"),
     rpc("qm_pub_filters"), rpc("qm_pub_home").catch(() => ({}))]);

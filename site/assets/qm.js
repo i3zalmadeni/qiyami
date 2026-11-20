@@ -163,11 +163,10 @@ async function openStudentCard(id) {
     ${c.positive.length ? `<h4 class="sec">مواقف إيجابية</h4>${c.positive.map((p) => `<div class="item"><b>${esc(p.category)}</b> <small>${esc(fmtShort(p.created_at))}</small><p class="sub">${esc(p.description)}</p></div>`).join("")}` : ""}
     <h4 class="sec">حركة النقاط</h4>${L.rows.length ? `<table class="tbl"><tbody>${L.rows.map((r) => `<tr><td>${pts(r.points)}</td><td>${esc(r.reason || "")}${r.kind === "reversal" ? " (إلغاء)" : r.kind === "correction" ? " (تصحيح)" : ""}</td><td><small>${esc(r.by)} · ${esc(fmtShort(r.created_at))}</small></td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا حركات.</p>'}
     ${c.sensitive ? `<h4 class="sec">الوقائع السلوكية</h4>${c.incidents.length ? c.incidents.map((i) => `<div class="item"><b>واقعة ${i.no}</b> · ${esc(i.category)} ${tbadge(i.status_name, i.tone)} <small>${esc(fmtDay(i.occurred_on))}</small></div>`).join("") : '<p class="sub">لا وقائع.</p>'}` : ""}
-    ${(window.__qm?.isAdmin || window.__qm?.isAgent || window.__qm?.isCounselor) ? `<div class="acts mt"><a class="btn sm sec" href="student.html?id=${id}">${ico("user")}الملف الشخصي</a>${window.__qm.canReinforce ? `<button class="btn sm" data-badge>${ico("trophy")}منح وسام</button>` : ""}${window.__qm.isAdmin ? `<button class="btn sm sec" data-adj>تصحيح الرصيد</button>` : ""}</div>` : ""}
+    ${(window.__qm?.isAdmin || window.__qm?.isAgent || window.__qm?.isCounselor) ? `<div class="acts mt"><a class="btn sm sec" href="student.html?id=${id}">${ico("user")}الملف الشخصي</a>${window.__qm.canReinforce ? `<button class="btn sm" data-badge>${ico("trophy")}منح وسام</button>` : ""}</div>` : ""}
     <p class="sub">بطاقة داخلية لمنسوبي المدرسة المخولين، وليست ملفاً إدارياً شاملاً.</p>`;
     $("[data-x]", md.el).onclick = md.close;
     const bb = $("[data-badge]", md.el); if (bb) bb.onclick = () => awardBadge(id, () => { md.close(); openStudentCard(id); });
-    const ab = $("[data-adj]", md.el); if (ab) ab.onclick = () => adjustPoints(id, () => { md.close(); openStudentCard(id); });
   } catch (e) { md.el.innerHTML = `<p class="err">${esc(mapErr(e))}</p><button class="btn sec" data-x>إغلاق</button>`; $("[data-x]", md.el).onclick = md.close; }
 }
 
@@ -249,7 +248,6 @@ const NAV = [
   ["negative.html", "السلوك السلبي", "flag", "تسجيل الوقائع السلوكية ومتابعة ما رفعتَه", "neg"],
   ["students.html", "دليل المتعلمين", "users", "كل المتعلمين بالفرز حسب المرحلة والصف والفصل، والدخول المباشر إلى ملف المتعلم", "all"],
   ["agent.html", "الوقائع والمتابعة", "inbox", "الوقائع المحالة من المعلمين وحالات الدعم التربوي", "agent"],
-  ["award.html", "منح الأوسمة", "crown", "أوسمة عامة يمنحها وكيل شؤون الطلاب للمتميزين سلوكاً وانضباطاً ومبادرة", "agent"],
   ["counselor.html", "الحالات والمتابعة", "help", "الحالات المحالة إلى الموجه الطلابي وحالات الدعم التربوي", "counselor"],
   ["teach.html", "مهامي معلّماً", "star", "منح النقاط وتسجيل السلوك ووقائعي وسجل التعزيز في صفحة واحدة", "teach"],
   ["reports.html", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "report"],   // للمنسق: تبويب في «الرئيسية»
@@ -260,7 +258,6 @@ const HUBS = {
   "positive.html": [
     ["reinforce", "منح النقاط والأوسمة", "plus", "اختر الصف والفصل ثم امنح فردياً أو جماعياً", "reinforce"],
     ["reinforcements", "سجل التعزيز", "calendar", "سجل التعزيزات ودفتر النقاط"],
-    ["balances", "الأرصدة والتميز", "trophy", "أرصدة المتعلمين ولوحة التميز"],
     ["achievements", "الإنجاز والمواهب", "star", "إنجازات المتعلمين ومواهبهم ومعرض التميز"],
     ["note", "موقف إيجابي", "check", "توثيق موقف إيجابي للمتعلم دون نقاط", "reinforce"],
     ["points", "تصحيح النقاط", "star", "إضافة نقاط المتعلم وتعديلها وحذفها بحركة تصحيح موثقة", "admin"],
@@ -293,6 +290,8 @@ const AGENT_ORDER = ["dashboard.html", "agent.html", "support.html", "award.html
 const HUB_FN = { "admin.html": "adminTab", "dashboard.html": "adminTab" };
 function openHub(page) {
   const tabs = HUBS[page], qs = new URLSearchParams(location.search); let tab = qs.get("tab") || (page === "admin.html" ? qs.get("t") : null);
+  // الأرصدة في «دليل المتعلمين»، والمتصدرون في الرئيسية: لا تبويب مستقل للأرصدة
+  if ((page === "positive.html" || page === "teach.html") && tab === "balances") { location.replace("students.html"); return; }
   if (page === "admin.html" && tab === "roles") { location.replace("admin.html?tab=perms"); return; }   // الأدوار في «الصلاحيات»
   // الروابط القديمة لإدارة البوابة: تصحيح النقاط في السلوك الإيجابي، وسجل العمليات في الرئيسية، وحالات الواقعة مع التصنيفات
   if (page === "admin.html" && ({ points: 1, audit: 1, stat: 1 })[tab]) { location.replace(({ points: "positive.html?tab=points", audit: "dashboard.html?tab=audit", stat: "admin.html?tab=cats" })[tab]); return; }
