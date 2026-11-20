@@ -44,8 +44,8 @@ const PAGES = {
     (H.last_badges || []).forEach((bg) => ev.push({ k: "b", n: 1, ...bg }));
     ev.sort((a, b2) => new Date(b2.at) - new Date(a.at));
     const feed = ev.slice(0, 8).map((e) => `<div class="fd"><span class="fd-ic ${e.k}">${ico(e.k === "b" ? "medal" : "star")}</span><div>${e.k === "b"
-      ? `<b><a href="student.html?id=${e.id}">${esc(shortName(e.name))}</a></b> نال «${esc(e.badge)}»`
-      : e.n > 1 ? `<b>${e.n} ${e.n > 10 ? "متعلماً" : "متعلمين"}</b> نالوا ${pts(e.points)} لكلٍّ منهم · ${esc(e.type)}` : `<b><a href="student.html?id=${e.id}">${esc(shortName(e.name))}</a></b> نال ${pts(e.points)} · ${esc(e.type)}`}
+      ? `<b><a href="learner.html?id=${e.id}">${esc(shortName(e.name))}</a></b> نال «${esc(e.badge)}»`
+      : e.n > 1 ? `<b>${e.n} ${e.n > 10 ? "متعلماً" : "متعلمين"}</b> نالوا ${pts(e.points)} لكلٍّ منهم · ${esc(e.type)}` : `<b><a href="learner.html?id=${e.id}">${esc(shortName(e.name))}</a></b> نال ${pts(e.points)} · ${esc(e.type)}`}
       <small>${esc(e.by)} · ${esc(e.grade || "")}${e.section ? "، " + esc(e.section) : ""} · ${esc(ago(e.at))}</small></div></div>`).join("");
     const openCases = (cases || []).filter((i) => !i.is_closed).slice(0, 5);
     const queue = (t, href, rows, html) => (rows && rows.length ? `<div class="hd"><h3 class="sec">${t}</h3><a href="${href}">عرض الكل</a></div>${rows.map(html).join("")}` : "");
@@ -62,7 +62,7 @@ const PAGES = {
       ${sens ? `<div class="card"><h4 style="margin-top:0">مسار الوقائع السلوكية</h4><div class="pulse p3">${pl(d.incidents_new, "جديدة")}${pl(d.incidents_with_agent, "لدى الوكيل")}${pl(d.incidents_referred, "لدى الموجه")}</div></div>` : ""}
       <div class="card"><h4 style="margin-top:0">آخر ما جرى</h4>${feed || '<p class="sub">لا حركات بعد.</p>'}</div>
       <div class="card"><h4 style="margin-top:0">الأكثر منحاً</h4>${rankRows((H.givers || []).slice(0, 5), "name", "awards")}</div>
-      <div class="card"><div class="hd"><h4 style="margin:0">متصدرو النقاط</h4><a href="leaderboard.html">لوحة الصدارة</a></div>${(H.top || []).slice(0, 5).map((r, i) => `<div class="rank"><span class="n ${i === 0 ? "g" : ""}">${i + 1}</span><b><a href="student.html?id=${r.id}">${esc(shortName(r.name))}</a></b><span class="v">${r.balance}</span></div>`).join("") || '<p class="sub">لا أرصدة بعد.</p>'}</div>
+      <div class="card"><div class="hd"><h4 style="margin:0">متصدرو النقاط</h4><a href="leaderboard.html">لوحة الصدارة</a></div>${(H.top || []).slice(0, 5).map((r, i) => `<div class="rank"><span class="n ${i === 0 ? "g" : ""}">${i + 1}</span><b><a href="learner.html?id=${r.id}">${esc(shortName(r.name))}</a></b><span class="v">${r.balance}</span></div>`).join("") || '<p class="sub">لا أرصدة بعد.</p>'}</div>
     </aside></div>`;
     bindIncidents(m, () => location.reload());
     m.addEventListener("click", (e) => { const el = e.target.closest("[data-ach]"); if (el) openAchievement(el.dataset.ach, () => location.reload()); });
@@ -212,10 +212,10 @@ const PAGES = {
     const ex = await rpc("qm_excellence", { p_limit: 10 });
     m.innerHTML = `<div class="grid"><div class="card"><h4 style="margin-top:0">لوحة التميز</h4>${ex.length ? ex.map((r, i) => `<div class="rank"><span class="n ${i === 0 ? "g" : ""}">${i + 1}</span><b><a href="#" data-c="${r.id}">${esc(r.name)}</a></b><span class="v">${r.balance}</span><span class="track"><i style="width:${Math.round((r.balance / ex[0].balance) * 100)}%"></i></span></div>`).join("") : '<p class="sub">لا أرصدة بعد.</p>'}<p class="sub">للتكريم والتحفيز، وليست ترتيباً رسمياً.</p></div>
     <div class="card" style="grid-column:span 2"><h4 style="margin-top:0">أرصدة المتعلمين</h4><input id="q" type="search" placeholder="ابحث باسم المتعلم أو رقمه" aria-label="بحث"><div id="li" style="margin-top:10px"></div></div></div>`;
-    $$("[data-c]", m).forEach((a) => (a.onclick = (e) => { e.preventDefault(); location.href = "student.html?id=" + a.dataset.c; }));
+    $$("[data-c]", m).forEach((a) => (a.onclick = (e) => { e.preventDefault(); location.href = "learner.html?id=" + a.dataset.c; }));
     let t = 0; const draw = async () => { const r = await rpc("qm_balances", { p_q: $("#q").value, p_limit: 60 });
       $("#li").innerHTML = r.length ? `<table class="tbl"><thead><tr><th>المتعلم</th><th>الصف</th><th>التعزيزات</th><th>الرصيد</th></tr></thead><tbody>${r.map((x) => `<tr data-c="${x.id}" style="cursor:pointer"><td>${esc(x.name)}</td><td>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</td><td>${x.awards}</td><td>${pts(x.balance)}</td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا نتائج.</p>';
-      $$("tr[data-c]", $("#li")).forEach((tr) => (tr.onclick = () => (location.href = "student.html?id=" + tr.dataset.c))); };
+      $$("tr[data-c]", $("#li")).forEach((tr) => (tr.onclick = () => (location.href = "learner.html?id=" + tr.dataset.c))); };
     $("#q").oninput = () => { clearTimeout(t); t = setTimeout(draw, 250); }; await draw();
   }),
 
@@ -259,7 +259,7 @@ const PAGES = {
       const q = st.q.trim(), rows = inG.filter((x) => (!st.section || x.section_id === st.section) && (!q || x.name.includes(q) || String(x.no || "").startsWith(q)));
       $("#dn").textContent = rows.length + " متعلماً";
       $$(".dir-v button", m).forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === view));
-      const href = (x) => "student.html?id=" + x.id;
+      const href = (x) => "learner.html?id=" + x.id;
       const where = (x) => esc(x.grade || "") + (x.section ? " · " + esc(x.section) : "");
       $("#dl").innerHTML = !rows.length ? empty("users", "لا متعلمين بهذا الفرز", q ? "جرّب اسماً آخر أو امسح التصفية." : "اختر صفاً أو فصلاً آخر.")
         : view === "list"
@@ -595,62 +595,95 @@ Object.assign(PAGES, {
   }, { role: "report" }),
 });
 
+// ملف المتعلم في لوحة التحكم (learner.html): كل ما يخص المتعلم في مكان واحد، والإدارة منه مباشرة
+// المنسق: تعديل النقاط وحذفها، والتصحيح، وتعديل الأوسمة وسحبها ومنحها، وحذف المواقف. غيره: يحذف ما سجّله هو فقط.
+// الصفحة العامة للمتعلم في الموقع (student.html) تبقى للعرض العام فقط.
 Object.assign(PAGES, {
-  student: () => boot("student.html", async (m, ctx) => {
-    const id = new URLSearchParams(location.search).get("id");
-    if (!id) { m.innerHTML = empty("users", "لم يُحدَّد متعلم", "افتح الملف من لوحة التميز أو من دليل المتعلمين."); return; }
-    const s = await rpc("qm_student_profile", { p_student: id });
-    const ini = (s.name || "").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join(" ");
-    document.title = s.name + " – قيمي";
-    m.innerHTML = `<section class="sp-hero"><div class="sp-av" aria-hidden="true">${esc(ini)}</div><div class="sp-id"><small>الملف الشخصي للمتعلم</small><h2>${esc(s.name)}</h2><p>المرحلة: المتوسطة · الصف: ${esc(s.grade || "—")}${s.section ? " · " + esc(s.section) : ""}${s.no ? " · رقم " + esc(s.no) : ""}</p>
-        <div class="sp-chips">${s.badges.slice(0, 4).map((b) => `<span class="bdg-i">${ico(b.icon in ICONS ? b.icon : "trophy")}${esc(b.name)}</span>`).join("")}</div></div>
-      <div class="sp-pts"><b>${s.balance}</b><span>نقطة</span>${s.balance > 0 ? `<small>الترتيب ${s.rank} في المدرسة</small>` : ""}</div></section>
-      <div class="grid mt">${kpi("check", s.reinforcements, "تعزيزاً", 1)}${kpi("trophy", s.badges.length, "وساماً", 3)}${kpi("star", s.achievements.length, "إنجازاً موثقاً", 4)}${kpi("bulb", s.talents.length, "موهبة", 0)}</div>
-      <div class="grid mt">
-        <div class="card" style="grid-column:1/-1"><h4 style="margin-top:0">من أين حصل على نقاطه؟</h4>${(s.by_type || []).length ? `<table class="tbl"><thead><tr><th>جانب التعزيز</th><th>عدد المرات</th><th>النقاط</th></tr></thead><tbody>${s.by_type.map((t) => `<tr><td><b>${esc(t.type)}</b></td><td>${t.n}</td><td>${pts(t.points)}</td></tr>`).join("")}</tbody><tfoot><tr><td><b>المجموع</b></td><td>${s.by_type.reduce((a, t) => a + t.n, 0)}</td><td>${pts(s.by_type.reduce((a, t) => a + (t.points || 0), 0))}</td></tr></tfoot></table>` : '<p class="sub">لا تعزيزات بعد.</p>'}</div>
-        <div class="card"><h4 style="margin-top:0">من منح النقاط</h4>${s.givers.length ? rankRows(s.givers.map((g) => ({ name: g.name + " (" + g.n + " تعزيز)", points: g.points })), "name", "points") : '<p class="sub">لا نقاط ممنوحة بعد.</p>'}</div>
-        <div class="card"><h4 style="margin-top:0">الأوسمة</h4>${s.badges.length ? s.badges.map((b) => `<div class="item"><div class="row2"><b>${ico(b.icon in ICONS ? b.icon : "trophy")} ${esc(b.name)}</b><small>${esc(fmtShort(b.at))}</small></div><small>منحه: ${esc(b.by)}</small></div>`).join("") : '<p class="sub">لا أوسمة بعد.</p>'}</div>
-        <div class="card"><h4 style="margin-top:0">المواهب والقدرات</h4>${s.talents.length ? s.talents.map((t) => `<div class="item"><b>${esc(t.name)}</b> <small>${esc(t.field)}</small>${t.description ? `<p class="sub">${esc(t.description)}</p>` : ""}</div>`).join("") : '<p class="sub">لا مواهب مرصودة.</p>'}</div></div>
-      <h3 class="sec">الإنجازات</h3>${s.achievements.length ? s.achievements.map((a) => `<div class="item"><div class="row2"><b>${esc(a.title)}</b><small>${esc(fmtDay(a.achieved_on))}</small></div><small>${esc(a.category)} · ${esc(LV[a.level])}</small></div>`).join("") : '<p class="sub">لا إنجازات موثقة بعد.</p>'}
-      <h3 class="sec">سجل التعزيز</h3>${s.reinforcement_list.length ? s.reinforcement_list.map((r) => `<div class="item"><div class="row2"><div><b>${esc(r.type)}</b><br><small>منحه: ${esc(r.by)} · ${esc(fmtT(r.created_at))}</small></div>${r.points ? pts(r.points) : ""}</div>${r.description ? `<p class="sub">${esc(r.description)}</p>` : ""}</div>`).join("") : empty("check", "لا تعزيزات بعد")}
-      ${s.positive.length ? `<h3 class="sec">مواقف إيجابية</h3>${s.positive.map((p) => `<div class="item"><div class="row2"><b>${esc(p.category)}</b><small>${esc(fmtShort(p.created_at))}</small></div><p class="sub">${esc(p.description)}</p><small>سجّلها: ${esc(p.by)}</small></div>`).join("")}` : ""}
-      <p class="sub">ملف تعريفي يعرض الجانب الإيجابي فقط، ولا يتضمن بيانات تواصل أو سلوكية.</p>
-      <div class="acts mt"><a class="btn sec" href="leaderboard.html#dirsec">${ico("arrow")}ملفات الطلاب</a>${ctx.isAdmin || ctx.isAgent || ctx.isCounselor ? `<button class="btn sec" id="card">البطاقة الكاملة</button>` : ""}</div>`;
-    const c = $("#card"); if (c) c.onclick = () => openStudentCard(id);
-  }, { title: "ملف المتعلم", desc: "الجانب الإيجابي: النقاط ومن منحها والأوسمة والإنجازات" }),
-});
-
-Object.assign(PAGES, {
-  points: () => boot("admin.html", async (m) => {
-    const T = await types("qm_reinforcement_types"), st = { s: null };
-    m.innerHTML = `<div class="card form"><label>المتعلم</label><div id="pk"></div></div><div id="pb" style="margin-top:16px"></div>
-      <div class="card mt"><h4 style="margin-top:0">نقاط أنواع التعزيز الافتراضية</h4><p class="sub">تظهر هذه القيم في «كيف تكسب النقاط؟» بالصفحة الرئيسية مرتبة من الأعلى. عدّل أو أضف أو احذف الأنواع من <a href="admin.html?tab=types">الإدارة ← أنواع التعزيز</a>.</p>
-      <table class="tbl"><thead><tr><th>النوع</th><th>النقاط الافتراضية</th></tr></thead><tbody>${[...T].sort((a, b) => b.default_points - a.default_points).map((t) => `<tr><td><b>${esc(t.name_ar)}</b></td><td>${pts(t.default_points)}</td></tr>`).join("")}</tbody></table></div>`;
-    const paint = async () => {
-      const box = $("#pb");
-      if (!st.s) { box.innerHTML = empty("star", "اختر متعلماً", "ابحث باسمه لإضافة نقاط أو تعديلها أو حذفها."); return; }
-      let D; try { D = await rpc("qm_student_reinforcements_admin", { p_student: st.s.id }); } catch (e) { box.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; return; }
-      box.innerHTML = `<div class="card"><div class="row2"><div><h4 style="margin:0">${esc(st.s.name)}</h4><small>${esc(st.s.grade || "")}${st.s.section ? " · " + esc(st.s.section) : ""}</small></div><div>الرصيد الحالي: ${pts(D.balance)}</div></div>
-        <div class="two mt"><div><label>إضافة نقاط (نوع التعزيز)</label><select id="ty">${T.map((t) => `<option value="${t.id}" data-p="${t.default_points}">${esc(t.name_ar)}</option>`).join("")}</select></div><div><label>عدد النقاط</label><input id="pt" type="number" min="1" max="1000" value="${T[0]?.default_points || 1}"></div></div>
-        <label>ملاحظة (اختياري)</label><input id="ds" maxlength="300"><p class="err" id="pe"></p>
-        <div class="acts mt"><button class="btn" id="ad">${ico("plus")}إضافة النقاط</button><button class="btn sec" id="adj">خصم / تصحيح الرصيد</button><button class="btn sec" id="bg">منح وسام</button><a class="btn sec" href="student.html?id=${st.s.id}">فتح الملف</a></div></div>
-        <div class="card mt"><h4 style="margin-top:0">التعزيزات المسجّلة</h4>${D.rows.length ? `<table class="tbl"><thead><tr><th>النوع</th><th>النقاط</th><th>منحها</th><th>التاريخ</th><th></th></tr></thead><tbody>${D.rows.map((r) => `<tr><td><b>${esc(r.type)}</b>${r.description ? `<br><small>${esc(r.description)}</small>` : ""}</td><td>${pts(r.points)}</td><td>${esc(r.by)}</td><td>${esc(fmtShort(r.created_at))}</td><td><button class="btn sm sec" data-e="${r.id}" data-p="${r.points}">تعديل</button> <button class="btn sm sec" data-d="${r.id}">حذف</button></td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا تعزيزات.</p>'}</div>`;
-      $("#ty").onchange = (e) => ($("#pt").value = e.target.selectedOptions[0].dataset.p || 1);
-      $("#ad").onclick = async () => { try { await rpc("qm_admin_add_points", { p_student: st.s.id, p_type: $("#ty").value, p_points: +$("#pt").value, p_description: $("#ds").value }); toast("أُضيفت النقاط"); paint(); } catch (e) { $("#pe").textContent = mapErr(e); } };
-      $("#adj").onclick = () => adjustPoints(st.s.id, paint);
-      $("#bg").onclick = () => awardBadge(st.s.id, paint);
-      $$("[data-e]", box).forEach((b) => (b.onclick = async () => {
-        const md = modal(`<h3>تعديل نقاط التعزيز</h3><label>النقاط الجديدة</label><input id="np" type="number" min="0" max="1000" value="${b.dataset.p}"><label>سبب التعديل (مطلوب)</label><textarea id="nr"></textarea><p class="err" id="ne"></p><div class="acts mt"><button class="btn" id="ok">حفظ</button><button class="btn sec" id="no">رجوع</button></div>`);
+  learner: () => boot("learner.html", async (m, ctx) => {
+    const qs = new URLSearchParams(location.search), id = qs.get("id");
+    if (!id) {
+      m.innerHTML = `<div class="card form"><label>ابحث عن المتعلم بالاسم أو الرقم</label><div id="pk"></div><p class="sub mt">أو تصفّح <a href="students.html">دليل المتعلمين</a> بالمرحلة والصف والفصل.</p></div>`;
+      studentPicker($("#pk"), (x) => (location.href = "learner.html?id=" + x.id));
+      return;
+    }
+    let tab = qs.get("t") || "pts";
+    const load = async () => {
+      const s = await rpc("qm_student_file", { p_student: id });
+      const adm = !!(ctx.isAdmin && s.is_admin), sens = ctx.isAdmin || ctx.isAgent || ctx.isCounselor;
+      document.title = s.name + " – ملف المتعلم – قيمي";
+      const R = s.reinf || [], B = s.badge_rows || [], P = s.positive_rows || [], A = s.achievements || [];
+      const TABS = [["pts", "النقاط", "star", R.length], ["bdg", "الأوسمة", "medal", B.length], ["ach", "الإنجازات والمواقف", "trophy", A.length + P.length], ["sum", "ملخص", "chart", ""], ["led", "حركة الرصيد", "list", ""]];
+      if (!TABS.some((t) => t[0] === tab)) tab = "pts";
+      m.innerHTML = `<section class="lf-hero"><div class="lf-av" aria-hidden="true">${esc(initials(s.name))}</div>
+          <div class="lf-id"><h2>${esc(s.name)}</h2><p>${esc(s.grade || "—")}${s.section ? " · " + esc(s.section) : ""}${s.no ? " · رقم " + esc(s.no) : ""}</p>
+            <div class="acts">${adm ? `<button class="btn sm" id="xAdd">${ico("plus")}إضافة نقاط</button><button class="btn sm sec" id="xAdj">خصم / تصحيح الرصيد</button><button class="btn sm sec" id="xBdg">${ico("medal")}منح وسام</button>` : ""}${sens ? `<button class="btn sm sec" id="xCard">${ico("user")}البطاقة الكاملة</button>` : ""}<a class="btn sm sec" href="students.html">${ico("users")}دليل المتعلمين</a><a class="lf-pub" href="student.html?id=${id}" target="_blank" rel="noopener">الصفحة العامة ↗</a></div></div>
+          <div class="lf-st"><div><b>${s.balance}</b><small>الرصيد</small></div><div><b>${s.balance > 0 ? s.rank : "—"}</b><small>الترتيب في المدرسة</small></div><div><b>${s.balance > 0 ? s.rank_section : "—"}</b><small>في الفصل</small></div></div></section>
+        <div class="tabs lf-tabs mt" role="tablist">${TABS.map(([k, n, i, c]) => `<button type="button" role="tab" data-lt="${k}" class="${k === tab ? "on" : ""}">${ico(i)}${n}${c !== "" ? ` <small>${c}</small>` : ""}</button>`).join("")}</div>
+        <div id="lb" class="mt"></div>`;
+      const body = $("#lb");
+      const act = (r, kind) => {
+        const b = [];
+        if (kind === "r") { if (adm) b.push(`<button class="btn sm sec" data-re="${r.id}" data-p="${r.points}">تعديل</button>`); if (adm || r.mine) b.push(`<button class="btn sm sec dng" data-rd="${r.id}">حذف</button>`); }
+        if (kind === "b" && adm) b.push(`<button class="btn sm sec" data-be="${r.id}">تعديل</button>`, `<button class="btn sm sec dng" data-bd="${r.id}">سحب</button>`);
+        if (kind === "p" && (adm || r.mine)) b.push(`<button class="btn sm sec dng" data-pd="${r.id}">حذف</button>`);
+        return b.join(" ");
+      };
+      const draw = async () => {
+        $$("[data-lt]", m).forEach((x) => x.classList.toggle("on", x.dataset.lt === tab));
+        const u = new URLSearchParams(location.search); u.set("t", tab); history.replaceState(null, "", "learner.html?" + u);
+        if (tab === "pts") body.innerHTML = `<div class="card"><div class="row2"><h4 style="margin:0">التعزيزات المسجّلة</h4><span>المجموع: ${pts(R.reduce((a, r) => a + (r.points || 0), 0))}</span></div>
+          ${R.length ? `<div style="overflow:auto"><table class="tbl mt"><thead><tr><th>النوع</th><th>النقاط</th><th>منحها</th><th>التاريخ</th><th></th></tr></thead><tbody>${R.map((r) => `<tr><td><b>${esc(r.type)}</b>${r.description ? `<br><small>${esc(r.description)}</small>` : ""}</td><td>${pts(r.points)}</td><td>${esc(r.by)}</td><td>${esc(fmtShort(r.created_at))}</td><td class="lf-a">${act(r, "r")}</td></tr>`).join("")}</tbody></table></div>` : empty("star", "لا تعزيزات بعد")}
+          ${adm ? `<p class="sub">التعديل والحذف يُسجَّلان بحركة تصحيح في دفتر النقاط مع السبب، ويُعكس أثرهما على الرصيد.</p>` : R.some((r) => r.mine) ? `<p class="sub">يمكنك حذف ما منحتَه أنت فقط.</p>` : ""}</div>`;
+        if (tab === "bdg") body.innerHTML = `<div class="card"><h4 style="margin-top:0">الأوسمة الممنوحة</h4>${B.length ? `<div style="overflow:auto"><table class="tbl"><thead><tr><th>الوسام</th><th>نقاطه</th><th>سبب المنح</th><th>منحه</th><th>التاريخ</th><th></th></tr></thead><tbody>${B.map((b) => `<tr><td><b>${ico(b.icon in ICONS ? b.icon : "medal")} ${esc(b.name)}</b></td><td>${b.points ? pts(b.points) : "—"}</td><td>${esc(b.note || "—")}</td><td>${esc(b.by)}</td><td>${esc(fmtShort(b.at))}</td><td class="lf-a">${act(b, "b")}</td></tr>`).join("")}</tbody></table></div>` : empty("medal", "لا أوسمة بعد")}</div>`;
+        if (tab === "ach") body.innerHTML = `<div class="card"><h4 style="margin-top:0">الإنجازات الموثقة</h4>${A.length ? A.map((a) => `<div class="item"><div class="row2"><b>${esc(a.title)}</b><small>${esc(fmtDay(a.achieved_on))}</small></div><small>${esc(a.category)} · ${esc(LV[a.level] || a.level)}</small></div>`).join("") : '<p class="sub">لا إنجازات موثقة.</p>'}<p class="sub">تُدار الإنجازات وتوثيقها من <a href="positive.html?tab=achievements">الإنجاز والمواهب</a>.</p></div>
+          <div class="card mt"><h4 style="margin-top:0">المواقف الإيجابية</h4>${P.length ? P.map((p) => `<div class="item"><div class="row2"><b>${esc(p.category)}</b><span><small>${esc(fmtShort(p.created_at))}</small> ${act(p, "p")}</span></div><p class="sub">${esc(p.description || "")}</p><small>سجّلها: ${esc(p.by)}</small></div>`).join("") : '<p class="sub">لا مواقف مسجّلة.</p>'}</div>
+          ${(s.talents || []).length ? `<div class="card mt"><h4 style="margin-top:0">المواهب والقدرات</h4>${s.talents.map((t) => `<div class="item"><b>${esc(t.name)}</b> <small>${esc(t.field)}</small>${t.description ? `<p class="sub">${esc(t.description)}</p>` : ""}</div>`).join("")}</div>` : ""}`;
+        if (tab === "sum") body.innerHTML = `<div class="grid">${kpi("check", s.reinforcements, "تعزيزاً", 1)}${kpi("medal", B.length, "وساماً", 3)}${kpi("trophy", A.length, "إنجازاً موثقاً", 4)}${kpi("bulb", (s.talents || []).length, "موهبة", 0)}</div>
+          <div class="grid mt"><div class="card" style="grid-column:span 2"><h4 style="margin-top:0">من أين حصل على نقاطه؟</h4>${(s.by_type || []).length ? `<table class="tbl"><thead><tr><th>جانب التعزيز</th><th>المرات</th><th>النقاط</th></tr></thead><tbody>${s.by_type.map((t) => `<tr><td><b>${esc(t.type)}</b></td><td>${t.n}</td><td>${pts(t.points)}</td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا تعزيزات بعد.</p>'}</div>
+          <div class="card"><h4 style="margin-top:0">من منح النقاط</h4>${(s.givers || []).length ? rankRows(s.givers.map((g) => ({ name: g.name + " (" + g.n + ")", points: g.points })), "name", "points") : '<p class="sub">لا نقاط بعد.</p>'}</div></div>`;
+        if (tab === "led") { body.innerHTML = '<p class="sub">جارٍ التحميل…</p>'; const L = await rpc("qm_ledger_list", { p_student: id, p_limit: 300 });
+          const KD = { reinforcement: "تعزيز", badge: "وسام", correction: "تصحيح", reversal: "إلغاء" };
+          body.innerHTML = `<div class="card"><div class="row2"><h4 style="margin:0">دفتر النقاط</h4><span>الرصيد: ${pts(L.balance)}</span></div>${L.rows.length ? `<div style="overflow:auto"><table class="tbl mt"><thead><tr><th>النقاط</th><th>الحركة</th><th>السبب</th><th>بواسطة</th><th>التاريخ</th></tr></thead><tbody>${L.rows.map((r) => `<tr><td><b class="${r.points < 0 ? "neg" : ""}">${r.points > 0 ? "+" : ""}${r.points}</b></td><td>${KD[r.kind] || r.kind}</td><td>${esc(r.reason || "")}</td><td>${esc(r.by)}</td><td>${esc(fmtShort(r.created_at))}</td></tr>`).join("")}</tbody></table></div>` : '<p class="sub">لا حركات.</p>'}<p class="sub">سجل ثابت لكل حركة على الرصيد؛ لا يُحذف منه شيء، وكل تعديل يظهر حركةً مستقلة.</p></div>`; }
+        bind();
+      };
+      const bind = () => {
+        $$("[data-re]", body).forEach((b) => (b.onclick = () => {
+          const md = modal(`<h3>تعديل نقاط التعزيز</h3><label>النقاط الجديدة</label><input id="np" type="number" min="0" max="1000" value="${b.dataset.p}"><label>سبب التعديل (مطلوب)</label><textarea id="nr"></textarea><p class="err" id="ne"></p><div class="acts mt"><button class="btn" id="ok">حفظ</button><button class="btn sec" id="no">رجوع</button></div>`);
+          $("#no", md.el).onclick = md.close;
+          $("#ok", md.el).onclick = async () => { try { await rpc("qm_edit_reinforcement_points", { p_id: b.dataset.re, p_points: +$("#np", md.el).value, p_reason: $("#nr", md.el).value }); md.close(); toast("عُدّلت النقاط"); load(); } catch (e) { $("#ne", md.el).textContent = mapErr(e); } };
+        }));
+        $$("[data-rd]", body).forEach((b) => (b.onclick = async () => { const n = await askNote("حذف التعزيز", "سبب الحذف (مطلوب). تُعكس نقاطه ويبقى أثره في دفتر النقاط.", true); if (!n) return; try { await rpc("qm_void_reinforcement", { p_id: b.dataset.rd, p_reason: n }); toast("حُذف التعزيز وعُكست نقاطه"); load(); } catch (e) { toast(mapErr(e), true); } }));
+        $$("[data-bd]", body).forEach((b) => (b.onclick = async () => { const n = await askNote("سحب الوسام", "سبب السحب (مطلوب). تُعكس نقاط الوسام من الرصيد.", true); if (!n) return; try { await rpc("qm_revoke_badge", { p_id: b.dataset.bd, p_reason: n }); toast("سُحب الوسام"); load(); } catch (e) { toast(mapErr(e), true); } }));
+        $$("[data-pd]", body).forEach((b) => (b.onclick = async () => { const n = await askNote("حذف الموقف الإيجابي", "سبب الحذف (مطلوب).", true); if (!n) return; try { await rpc("qm_delete_positive", { p_id: b.dataset.pd, p_reason: n }); toast("حُذف الموقف"); load(); } catch (e) { toast(mapErr(e), true); } }));
+        $$("[data-be]", body).forEach((b) => (b.onclick = async () => {
+          const x = B.find((y) => y.id === b.dataset.be); const { data: BL } = await sb.from("qm_badges").select("id,name_ar,points,is_active").order("sort_order");
+          const list = (BL || []).filter((y) => y.is_active || y.id === x.badge_id);
+          const md = modal(`<h3>تعديل الوسام</h3><label>الوسام</label><select id="eb">${list.map((y) => `<option value="${y.id}" data-p="${y.points || 0}" ${y.id === x.badge_id ? "selected" : ""}>${esc(y.name_ar)}${y.points ? " (+" + y.points + ")" : ""}</option>`).join("")}</select>
+            <label>نقاط الوسام لهذا المتعلم</label><input id="ep" type="number" min="0" max="1000" value="${x.points || 0}"><label>سبب المنح</label><textarea id="en" maxlength="300">${esc(x.note || "")}</textarea><label>سبب التعديل (مطلوب)</label><input id="er" maxlength="300"><p class="err" id="ee"></p><div class="acts mt"><button class="btn" id="ok">حفظ</button><button class="btn sec" id="no">رجوع</button></div>`);
+          $("#eb", md.el).onchange = (e) => ($("#ep", md.el).value = e.target.selectedOptions[0].dataset.p);
+          $("#no", md.el).onclick = md.close;
+          $("#ok", md.el).onclick = async () => { try { await rpc("qm_edit_student_badge", { p_id: x.id, p_badge: $("#eb", md.el).value, p_note: $("#en", md.el).value, p_points: +$("#ep", md.el).value, p_reason: $("#er", md.el).value }); md.close(); toast("عُدّل الوسام"); load(); } catch (e) { $("#ee", md.el).textContent = mapErr(e); } };
+        }));
+      };
+      $$("[data-lt]", m).forEach((x) => (x.onclick = () => { tab = x.dataset.lt; draw(); }));
+      const on = (k, f) => { const e = $(k); if (e) e.onclick = f; };
+      on("#xCard", () => openStudentCard(id));
+      on("#xAdj", () => adjustPoints(id, load));
+      on("#xBdg", () => awardBadge(id, load));
+      on("#xAdd", async () => {
+        const T = await types("qm_reinforcement_types");
+        const md = modal(`<h3>إضافة نقاط</h3><label>نوع التعزيز</label><select id="ty">${T.map((t) => `<option value="${t.id}" data-p="${t.default_points}">${esc(t.name_ar)}</option>`).join("")}</select><label>عدد النقاط</label><input id="pt" type="number" min="1" max="1000" value="${T[0]?.default_points || 1}"><label>ملاحظة (اختياري)</label><input id="ds" maxlength="300"><p class="err" id="pe"></p><div class="acts mt"><button class="btn" id="ok">إضافة</button><button class="btn sec" id="no">رجوع</button></div>`);
+        $("#ty", md.el).onchange = (e) => ($("#pt", md.el).value = e.target.selectedOptions[0].dataset.p || 1);
         $("#no", md.el).onclick = md.close;
-        $("#ok", md.el).onclick = async () => { try { await rpc("qm_edit_reinforcement_points", { p_id: b.dataset.e, p_points: +$("#np", md.el).value, p_reason: $("#nr", md.el).value }); md.close(); toast("عُدّلت النقاط"); paint(); } catch (e) { $("#ne", md.el).textContent = mapErr(e); } };
-      }));
-      $$("[data-d]", box).forEach((b) => (b.onclick = async () => { const n = await askNote("حذف التعزيز", "سبب الحذف (مطلوب). تُعكس نقاطه ويبقى أثره في سجل العمليات.", true); if (!n) return; try { await rpc("qm_void_reinforcement", { p_id: b.dataset.d, p_reason: n }); toast("حُذف التعزيز وعُكست نقاطه"); paint(); } catch (e) { toast(mapErr(e), true); } }));
+        $("#ok", md.el).onclick = async () => { try { await rpc("qm_admin_add_points", { p_student: id, p_type: $("#ty", md.el).value, p_points: +$("#pt", md.el).value, p_description: $("#ds", md.el).value }); md.close(); toast("أُضيفت النقاط"); load(); } catch (e) { $("#pe", md.el).textContent = mapErr(e); } };
+      });
+      await draw();
     };
-    const pk = $("#pk");
-    const drawPk = () => { if (st.s) { pk.classList.remove("pick"); pk.innerHTML = chosenHTML(st.s); $("[data-clear]", pk).onclick = () => { st.s = null; drawPk(); paint(); }; } else studentPicker(pk, (s) => { st.s = s; drawPk(); paint(); }); };
-    drawPk(); paint();
-  }, { title: "إدارة النقاط", desc: "إضافة النقاط وتعديلها وحذفها" }),
+    try { await load(); } catch (e) { m.innerHTML = empty("users", "تعذر فتح ملف المتعلم", mapErr(e)); }
+  }, { nav: "students.html", title: "ملف المتعلم", icon: "user", desc: "كل نقاط المتعلم وأوسمته وإنجازاته ومواقفه وحركة رصيده، وإدارتها من مكان واحد" }),
 });
+// «تصحيح النقاط» صار داخل ملف المتعلم: الرابط القديم يفتح البحث عن المتعلم
+PAGES.points = () => location.replace("learner.html");
 PAGES.teach = () => openHub("teach.html");
 // منح الأوسمة لوكيل شؤون الطلاب: صفحة مستقلة بخطوات واضحة (الوسام ← المتعلمون ← السبب)، والأوسمة العامة فقط
 // «منح الأوسمة» للوكيل حُذفت: المنح من «مهامي معلّماً ← منح النقاط والأوسمة» (الأوسمة كلها، فردياً أو للفصل)
@@ -673,7 +706,7 @@ PAGES.awardOld = () => boot("award.html", async (m, c) => {
       <div id="ro" class="mt"></div></section>
     <section class="aw-step"><h3><i>3</i>سبب المنح</h3><input id="why" maxlength="300" placeholder="مثال: التزامه بالانضباط طوال الشهر، مبادرته في خدمة زملائه"></section>
     <div class="aw-bar" id="bar"></div>
-    ${mine.length ? `<h3 class="sec">آخر ما منحتُه من أوسمة</h3><div class="card">${mine.map((x) => `<div class="fd"><span class="fd-ic b">${ico("medal")}</span><div><b><a href="student.html?id=${x.id}">${esc(shortName(x.name))}</a></b> نال «${esc(x.badge)}»<small>${klass(x)} · ${esc(ago(x.at))}</small></div></div>`).join("")}</div>` : ""}`;
+    ${mine.length ? `<h3 class="sec">آخر ما منحتُه من أوسمة</h3><div class="card">${mine.map((x) => `<div class="fd"><span class="fd-ic b">${ico("medal")}</span><div><b><a href="learner.html?id=${x.id}">${esc(shortName(x.name))}</a></b> نال «${esc(x.badge)}»<small>${klass(x)} · ${esc(ago(x.at))}</small></div></div>`).join("")}</div>` : ""}`;
   const bar = () => { const b = B.find((x) => x.id === st.badge), n = st.sel.size;
     $("#bar").innerHTML = `<div class="aw-sum">${b ? medal(b, "sm") : `<span class="aw-q">${ico("crown")}</span>`}<div><b>${b ? "وسام «" + esc(b.name_ar) + "»" : "لم تختر الوسام بعد"}</b><small>${n ? n + (n > 10 ? " متعلماً" : n > 2 ? " متعلمين" : n === 2 ? " متعلمان" : " متعلم") : "لم تختر متعلمين بعد"}</small></div></div>
       ${n ? `<div class="aw-who">${[...st.sel.values()].map((s) => `<span>${esc(shortName(s.name))}<button type="button" data-rm="${s.id}" aria-label="إزالة ${esc(s.name)}">×</button></span>`).join("")}</div>` : ""}

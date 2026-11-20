@@ -618,3 +618,13 @@ main.hubmain{padding-top:18px}
 .dnav .pk-mb:hover,.dnav .pk-mb[aria-expanded=true]{background:rgba(255,255,255,.1);color:#fff}
 @media (min-width:761px){.dn .dnav-in{gap:2px}.dn .dnav-in a{padding-inline:11px}}
 @media (max-width:760px){.pb-t h1 .ico{width:30px;height:30px;padding:6px}}
+/* ملف المتعلم في لوحة التحكم */
+.lf-hero{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;background:#fff;border:1px solid var(--line,#dbe7ea);border-radius:18px;padding:18px 20px}
+.lf-av{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#3a8fa0,#5bbf8a);color:#fff;font-weight:800;font-size:24px;display:grid;place-items:center}
+.lf-id h2{margin:0 0 2px;font-size:22px}.lf-id p{margin:0 0 10px;color:var(--ink2,#5b6b70)}.lf-id .acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lf-pub{font-size:13px;color:var(--ink2,#5b6b70);margin-inline-start:6px}
+.lf-st{display:flex;gap:8px}.lf-st div{text-align:center;background:#f3f8f9;border-radius:14px;padding:10px 14px;min-width:84px}.lf-st b{display:block;font-size:26px;line-height:1.1;color:var(--brand2,#1f7a86)}.lf-st small{color:var(--ink2,#5b6b70);font-size:12px}
+.lf-tabs button small{background:#eef4f5;border-radius:99px;padding:0 7px;font-size:11px}
+.lf-tabs button.on small{background:rgba(255,255,255,.28);color:inherit}
+.lf-a{white-space:nowrap}td.lf-a .btn{display:inline-flex;margin:2px}.btn.dng{color:#b42318}.tbl b.neg{color:#b42318}
+@media (max-width:760px){.lf-hero{grid-template-columns:1fr;text-align:center}.lf-av{margin:auto}.lf-id .acts{justify-content:center}.lf-st{justify-content:center;flex-wrap:wrap}}

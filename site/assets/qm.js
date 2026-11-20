@@ -163,7 +163,7 @@ async function openStudentCard(id) {
     ${c.positive.length ? `<h4 class="sec">مواقف إيجابية</h4>${c.positive.map((p) => `<div class="item"><b>${esc(p.category)}</b> <small>${esc(fmtShort(p.created_at))}</small><p class="sub">${esc(p.description)}</p></div>`).join("")}` : ""}
     <h4 class="sec">حركة النقاط</h4>${L.rows.length ? `<table class="tbl"><tbody>${L.rows.map((r) => `<tr><td>${pts(r.points)}</td><td>${esc(r.reason || "")}${r.kind === "reversal" ? " (إلغاء)" : r.kind === "correction" ? " (تصحيح)" : ""}</td><td><small>${esc(r.by)} · ${esc(fmtShort(r.created_at))}</small></td></tr>`).join("")}</tbody></table>` : '<p class="sub">لا حركات.</p>'}
     ${c.sensitive ? `<h4 class="sec">الوقائع السلوكية</h4>${c.incidents.length ? c.incidents.map((i) => `<div class="item"><b>واقعة ${i.no}</b> · ${esc(i.category)} ${tbadge(i.status_name, i.tone)} <small>${esc(fmtDay(i.occurred_on))}</small></div>`).join("") : '<p class="sub">لا وقائع.</p>'}` : ""}
-    ${(window.__qm?.isAdmin || window.__qm?.isAgent || window.__qm?.isCounselor) ? `<div class="acts mt"><a class="btn sm sec" href="student.html?id=${id}">${ico("user")}الملف الشخصي</a>${window.__qm.canReinforce ? `<button class="btn sm" data-badge>${ico("trophy")}منح وسام</button>` : ""}</div>` : ""}
+    ${(window.__qm?.isAdmin || window.__qm?.isAgent || window.__qm?.isCounselor) ? `<div class="acts mt"><a class="btn sm sec" href="learner.html?id=${id}">${ico("user")}ملف المتعلم</a>${window.__qm.canReinforce ? `<button class="btn sm" data-badge>${ico("trophy")}منح وسام</button>` : ""}</div>` : ""}
     <p class="sub">بطاقة داخلية لمنسوبي المدرسة المخولين، وليست ملفاً إدارياً شاملاً.</p>`;
     $("[data-x]", md.el).onclick = md.close;
     const bb = $("[data-badge]", md.el); if (bb) bb.onclick = () => awardBadge(id, () => { md.close(); openStudentCard(id); });
@@ -260,7 +260,6 @@ const HUBS = {
     ["reinforcements", "سجل التعزيز", "calendar", "سجل التعزيزات ودفتر النقاط"],
     ["achievements", "الإنجاز والمواهب", "star", "إنجازات المتعلمين ومواهبهم ومعرض التميز"],
     ["note", "موقف إيجابي", "check", "توثيق موقف إيجابي للمتعلم دون نقاط", "reinforce"],
-    ["points", "تصحيح النقاط", "star", "إضافة نقاط المتعلم وتعديلها وحذفها بحركة تصحيح موثقة", "admin"],
   ],
   "negative.html": [
     ["behavior", "تسجيل السلوك", "plus", "واقعة سلوكية تُرفع إلى وكيل شؤون الطلاب", "behavior"],
@@ -292,9 +291,11 @@ function openHub(page) {
   const tabs = HUBS[page], qs = new URLSearchParams(location.search); let tab = qs.get("tab") || (page === "admin.html" ? qs.get("t") : null);
   // الأرصدة في «دليل المتعلمين»، والمتصدرون في الرئيسية: لا تبويب مستقل للأرصدة
   if ((page === "positive.html" || page === "teach.html") && tab === "balances") { location.replace("students.html"); return; }
+  // تصحيح النقاط صار داخل ملف المتعلم
+  if ((page === "positive.html" || page === "teach.html") && tab === "points") { location.replace("learner.html"); return; }
   if (page === "admin.html" && tab === "roles") { location.replace("admin.html?tab=perms"); return; }   // الأدوار في «الصلاحيات»
   // الروابط القديمة لإدارة البوابة: تصحيح النقاط في السلوك الإيجابي، وسجل العمليات في الرئيسية، وحالات الواقعة مع التصنيفات
-  if (page === "admin.html" && ({ points: 1, audit: 1, stat: 1 })[tab]) { location.replace(({ points: "positive.html?tab=points", audit: "dashboard.html?tab=audit", stat: "admin.html?tab=cats" })[tab]); return; }
+  if (page === "admin.html" && ({ points: 1, audit: 1, stat: 1 })[tab]) { location.replace(({ points: "learner.html", audit: "dashboard.html?tab=audit", stat: "admin.html?tab=cats" })[tab]); return; }
   if (!tabs.some((t) => t[0] === tab)) tab = tabs[0][0];
   const hub = (window.__hub = { page, tab, tabs }); hub.run = () => (PAGES[hub.tab] || PAGES[HUB_FN[page]])(); hub.run();
 }
@@ -339,11 +340,11 @@ async function boot(page, render, o = {}) {
   // أول قسم: «الرئيسية» للمنسق و«مكتبي» لغيره؛ والتقارير للمنسق داخل الرئيسية
   const items = NAV.filter((n) => ok(n[4]) && !(asCoord && n[0] === "reports.html")).map((n) => n[0] === "dashboard.html" ? [n[0], asCoord ? "الرئيسية" : "مكتبي", asCoord ? "home" : "grid", n[3], n[4]] : n);
   if (ctx.isAgent) items.sort((a, b) => AGENT_ORDER.indexOf(a[0]) - AGENT_ORDER.indexOf(b[0]));
-  const cur = items.find((n) => n[0] === page) || NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
+  const cur = items.find((n) => n[0] === page) || NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", o.icon || "grid", o.desc || ""];
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
-     <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${items.map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
+     <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${items.map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === (o.nav || page) ? "on" : ""}" ${h === (o.nav || page) ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
      <div class="dwho">${ubBarHTML(who.name, "dashboard.html")}</div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1>${ico(cur[2])}${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
