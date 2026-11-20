@@ -610,3 +610,11 @@ main.hubmain{padding-top:18px}
 
 /* ملاءمة الجوال: جدول حركة النقاط يتمرّر أفقياً بدل أن يوسّع الصفحة */
 @media(max-width:640px){.tbl{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
+
+/* ===== الهوية الموحدة للوحة التحكم (نمط النواة الرقمية، 2026-11-21) ===== */
+.pb-t h1{display:flex;align-items:center;gap:10px}
+.pb-t h1 .ico{flex:none;width:34px;height:34px;padding:7px;border-radius:11px;background:var(--brandsoft);stroke:var(--brand2);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.dnav .pk-mb{color:#cfe3e8;background:transparent;border:0;box-shadow:none;font-weight:500;font-size:.92rem;padding:9px 12px;border-radius:12px;min-height:0}
+.dnav .pk-mb:hover,.dnav .pk-mb[aria-expanded=true]{background:rgba(255,255,255,.1);color:#fff}
+@media (min-width:761px){.dn .dnav-in{gap:2px}.dn .dnav-in a{padding-inline:11px}}
+@media (max-width:760px){.pb-t h1 .ico{width:30px;height:30px;padding:6px}}

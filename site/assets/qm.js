@@ -248,14 +248,12 @@ const NAV = [
   ["positive.html", "السلوك الإيجابي", "medal", "منح النقاط والأوسمة وسجل التعزيز والأرصدة والإنجازات", "pos"],
   ["negative.html", "السلوك السلبي", "flag", "تسجيل الوقائع السلوكية ومتابعة ما رفعتَه", "neg"],
   ["students.html", "دليل المتعلمين", "users", "كل المتعلمين بالفرز حسب المرحلة والصف والفصل، والدخول المباشر إلى ملف المتعلم", "all"],
-  ["support.html", "المتابعة والدعم", "help", "حالات الدعم التربوي وخطط المتابعة", "support"],
-  ["agent.html", "صندوق الوكيل", "inbox", "الوقائع المحالة من المعلمين", "agent"],
+  ["agent.html", "الوقائع والمتابعة", "inbox", "الوقائع المحالة من المعلمين وحالات الدعم التربوي", "agent"],
   ["award.html", "منح الأوسمة", "crown", "أوسمة عامة يمنحها وكيل شؤون الطلاب للمتميزين سلوكاً وانضباطاً ومبادرة", "agent"],
-  ["counselor.html", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي", "counselor"],
+  ["counselor.html", "الحالات والمتابعة", "help", "الحالات المحالة إلى الموجه الطلابي وحالات الدعم التربوي", "counselor"],
   ["teach.html", "مهامي معلّماً", "star", "منح النقاط وتسجيل السلوك ووقائعي وسجل التعزيز في صفحة واحدة", "teach"],
-  ["reports.html", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "report"],
-  ["perms.html", "الصلاحيات", "key", "صلاحيات المنسوبين في البوابة: التعزيز والسلوك والتقارير والأدوار", "admin"],
-  ["admin.html", "إدارة البوابة", "gear", "النقاط والأوسمة والمستويات والتصنيفات والإعدادات وسجل العمليات", "admin"],
+  ["reports.html", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "report"],   // للمنسق: تبويب في «الرئيسية»
+  ["admin.html", "إدارة البوابة", "gear", "إعدادات البوابة بخطوات مرقّمة: الصلاحيات والتعزيز والأوسمة والمستويات والتصنيفات والإعدادات والإعلانات", "admin"],
 ];
 // الصفحات المجمّعة: صفحة واحدة في القائمة تندرج تحتها صفحات فرعية (?tab=)
 const HUBS = {
@@ -265,31 +263,39 @@ const HUBS = {
     ["balances", "الأرصدة والتميز", "trophy", "أرصدة المتعلمين ولوحة التميز"],
     ["achievements", "الإنجاز والمواهب", "star", "إنجازات المتعلمين ومواهبهم ومعرض التميز"],
     ["note", "موقف إيجابي", "check", "توثيق موقف إيجابي للمتعلم دون نقاط", "reinforce"],
+    ["points", "تصحيح النقاط", "star", "إضافة نقاط المتعلم وتعديلها وحذفها بحركة تصحيح موثقة", "admin"],
   ],
   "negative.html": [
     ["behavior", "تسجيل السلوك", "plus", "واقعة سلوكية تُرفع إلى وكيل شؤون الطلاب", "behavior"],
     ["incidents", "وقائعي", "inbox", "الوقائع التي رفعتَها وحالتها"],
   ],
+  // إدارة البوابة: إعدادات تُضبط مرة في بداية العام بخطوات مرقّمة، وتبقى متاحة للتعديل
   "admin.html": [
-    ["points", "إدارة النقاط", "star", "إضافة نقاط المتعلم وتعديلها وحذفها"],
-    ["types", "أنواع التعزيز", "list", "أنواع التعزيز ونقاطها المقترحة وطريقة استحقاقها"],
-    ["badges", "الأوسمة", "medal", "الأوسمة وصورها ونقاطها وسبب استحقاقها"],
-    ["levels", "المستويات", "chart", "مستويات الطلاب وحدودها من الرصيد التراكمي"],
-    ["cats", "تصنيفات السلوك", "flag", "تصنيفات المواقف الإيجابية والوقائع السلبية"],
-    ["stat", "حالات الواقعة", "compass", "أسماء حالات الواقعة وألوانها وترتيبها"],
-    ["set", "الإعدادات العامة", "gear", "حد النقاط ومهلة منع التكرار"],
-    ["audit", "سجل العمليات", "clock", "آخر العمليات المسجلة في النظام"],
+    ["perms", "1. الصلاحيات", "key", "صلاحيات المنسوبين في البوابة: التعزيز والسلوك والتقارير والأدوار"],
+    ["types", "2. أنواع التعزيز", "list", "أنواع التعزيز ونقاطها المقترحة وطريقة استحقاقها"],
+    ["badges", "3. الأوسمة", "medal", "الأوسمة وصورها ونقاطها وسبب استحقاقها"],
+    ["levels", "4. المستويات", "chart", "مستويات الطلاب وحدودها من الرصيد التراكمي"],
+    ["cats", "5. التصنيفات والحالات", "flag", "تصنيفات المواقف الإيجابية والوقائع السلبية، وأسماء حالات الواقعة وألوانها وترتيبها"],
+    ["set", "6. الإعدادات العامة", "gear", "حد النقاط ومهلة منع التكرار"],
+    ["ann", "7. الإعلانات", "bell", "إعلانات البوابة: المركزية لكل الأنظمة والخاصة بقيمي"],
   ],
 };
+// الرئيسية: نظرة عامة للجميع، والتقارير وسجل العمليات للمنسق
+HUBS["dashboard.html"] = [["overview", "نظرة عامة", "grid", "مهامك ومتابعاتك وما يدور في المنصة الآن"], ["reports", "التقارير", "list", "تقارير مجمّعة للفترة بلا أسماء، مع تصدير", "coord"], ["audit", "سجل العمليات", "clock", "آخر العمليات المسجلة في النظام", "coord"]];
+// الوكيل والموجه: الوقائع/الحالات والمتابعة والدعم في قسم واحد
+HUBS["agent.html"] = [["box", "الوقائع الواردة", "inbox", "الوقائع المحالة من المعلمين"], ["support", "المتابعة والدعم", "help", "حالات الدعم التربوي وخطط المتابعة", "support"]];
+HUBS["counselor.html"] = [["cases", "الحالات الإجرائية", "help", "الحالات المحالة إلى الموجه الطلابي"], ["support", "المتابعة والدعم", "help", "حالات الدعم التربوي وخطط المتابعة", "support"]];
 // مهام الوكيل معلّماً: السلوك الإيجابي والسلبي في صفحة واحدة، حتى لا تختلط بتبويبات الوكيل
 HUBS["teach.html"] = [...HUBS["positive.html"].map((t) => t[0] === "reinforce" ? ["reinforce", "منح النقاط والأوسمة", "plus", t[3], t[4]] : t),
   ...HUBS["negative.html"].map((t) => t[0] === "behavior" ? ["behavior", "تسجيل سلوك سلبي", "flag", t[3], t[4]] : t)];
 // ترتيب الشريط للوكيل: عمله أولاً، ثم مهامه معلّماً
 const AGENT_ORDER = ["dashboard.html", "agent.html", "support.html", "award.html", "students.html", "counselor.html", "teach.html", "reports.html", "perms.html", "admin.html"];
-const HUB_FN = { "admin.html": "adminTab" };
+const HUB_FN = { "admin.html": "adminTab", "dashboard.html": "adminTab" };
 function openHub(page) {
   const tabs = HUBS[page], qs = new URLSearchParams(location.search); let tab = qs.get("tab") || (page === "admin.html" ? qs.get("t") : null);
-  if (page === "admin.html" && tab === "roles") { location.replace("perms.html"); return; }   // الأدوار انتقلت إلى «الصلاحيات»
+  if (page === "admin.html" && tab === "roles") { location.replace("admin.html?tab=perms"); return; }   // الأدوار في «الصلاحيات»
+  // الروابط القديمة لإدارة البوابة: تصحيح النقاط في السلوك الإيجابي، وسجل العمليات في الرئيسية، وحالات الواقعة مع التصنيفات
+  if (page === "admin.html" && ({ points: 1, audit: 1, stat: 1 })[tab]) { location.replace(({ points: "positive.html?tab=points", audit: "dashboard.html?tab=audit", stat: "admin.html?tab=cats" })[tab]); return; }
   if (!tabs.some((t) => t[0] === tab)) tab = tabs[0][0];
   const hub = (window.__hub = { page, tab, tabs }); hub.run = () => (PAGES[hub.tab] || PAGES[HUB_FN[page]])(); hub.run();
 }
@@ -318,28 +324,35 @@ async function boot(page, render, o = {}) {
   if (ctx.canSwitch && ctx.view === "teacher") Object.assign(ctx, { isAdmin: false, isCoreAdmin: false, isAgent: false, isCounselor: false, canReports: who.can_reports === true, role: "المعلم" });
   if (asCoord) Object.assign(ctx, { canReinforce: false, canBehavior: false });
   window.__qm = ctx;
-  const ok = (r) => !(asCoord && ["neg", "teach", "reinforce", "behavior"].includes(r)) && ok0(r);
+  const ok = (r) => r === "coord" ? asCoord : !(asCoord && ["neg", "teach", "reinforce", "behavior"].includes(r)) && ok0(r);
   const ok0 = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "report" && ctx.canReports) || (r === "reinforce" && ctx.canReinforce) || (r === "behavior" && ctx.canBehavior) || (r === "pos" && !ctx.isAgent) || (r === "neg" && ctx.canBehavior && !ctx.isAgent) || (r === "teach" && ctx.isAgent) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
   // الوكيل: صفحتا السلوك الإيجابي والسلبي مدموجتان في «مهامي معلّماً»، فتُحوَّل روابطهما إليها مع الصفحة الفرعية نفسها
   if (ctx.isAgent && hub && (hub.page === "positive.html" || hub.page === "negative.html")) { const u = new URLSearchParams(location.search); u.set("tab", hub.tab); location.replace("teach.html?" + u); return; }
+  // لوحة المنسق: التقارير في «الرئيسية»، والصلاحيات خطوة في «إدارة البوابة»؛ والمتابعة والدعم داخل قسم الوكيل أو الموجه
+  if (!hub && asCoord && page === "reports.html") { location.replace("dashboard.html?tab=reports"); return; }
+  if (!hub && asCoord && page === "perms.html") { location.replace("admin.html?tab=perms"); return; }
+  if (!hub && page === "support.html" && (ctx.isAgent || ctx.isCounselor)) { location.replace((ctx.isAgent ? "agent.html" : "counselor.html") + "?tab=support" + (new URLSearchParams(location.search).get("i") ? "&i=" + new URLSearchParams(location.search).get("i") : "")); return; }
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
   // الصفحات الفرعية بحسب الصلاحية: ما لا يملكه المستخدم لا يظهر، ومن فتحه برابط يُنقل إلى أول صفحة متاحة
   if (hub) { hub.tabs = hub.tabs.filter((t) => !t[4] || ok(t[4]));
     if (!hub.tabs.some((t) => t[0] === hub.tab)) { location.replace(hub.tabs.length ? hub.page + "?tab=" + hub.tabs[0][0] : "dashboard.html"); return; } }
-  { const ne = NAV.find((n) => n[0] === page); if (ne && !ok(ne[4]) && ctx.canSwitch) { location.replace("dashboard.html"); return; } }   // صفحة لا تخص الدور المختار
-  const items = NAV.filter((n) => ok(n[4]));
+  { const ne = NAV.find((n) => n[0] === page); if (ne && !ok(ne[4]) && (ctx.canSwitch || hub)) { location.replace("dashboard.html"); return; } }   // صفحة لا تخص الدور المختار
+  // أول قسم: «الرئيسية» للمنسق و«مكتبي» لغيره؛ والتقارير للمنسق داخل الرئيسية
+  const items = NAV.filter((n) => ok(n[4]) && !(asCoord && n[0] === "reports.html")).map((n) => n[0] === "dashboard.html" ? [n[0], asCoord ? "الرئيسية" : "مكتبي", asCoord ? "home" : "grid", n[3], n[4]] : n);
   if (ctx.isAgent) items.sort((a, b) => AGENT_ORDER.indexOf(a[0]) - AGENT_ORDER.indexOf(b[0]));
-  const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
+  const cur = items.find((n) => n[0] === page) || NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
      <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${items.map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
      <div class="dwho">${ubBarHTML(who.name, "dashboard.html")}</div></div></div></header>
-     <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
+     <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1>${ico(cur[2])}${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <main class="wrap" id="main"></main>${footerHTML}`;
   bindNav();
-  if (window.PK && page === "admin.html") PK.mountAdminSection({ sb, system: "qiyami", central: false, after: "#main" });
+  // إدارة الإعلانات في «إدارة البوابة ← الإعلانات» وحدها (تُركَّب وتُزال عند التنقل بين التبويبات)
+  const annSync = () => { const on = !!(window.PK && page === "admin.html" && hub && hub.tab === "ann"); if (on && !document.querySelector(".pk-admwrap")) PK.mountAdminSection({ sb, system: "qiyami", central: false, after: "#main" }); if (!on) document.querySelectorAll(".pk-admwrap").forEach((e) => e.remove()); };
+  annSync();
   // قائمة الجوال: زر «القائمة» يفتح لائحة عمودية بكل التبويبات (على الشاشات العريضة يبقى الشريط الأفقي كما هو)
   (() => { const d = document.querySelector(".dnav"), b = document.getElementById("dmb"); if (!d || !b) return;
     const set = (o) => { d.classList.toggle("open", o); b.setAttribute("aria-expanded", o); };
@@ -352,6 +365,8 @@ async function boot(page, render, o = {}) {
   if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
     PK.mountAnnouncements({ sb, system: "qiyami", page: page === "dashboard.html" ? "home" : "all", before: ".pagebar" });
     if (page === "dashboard.html") PK.welcome("#main", { mode: "before", sb, name: who.name, role: ctx.role }); }
+  const wcSync = () => document.querySelectorAll(".pk-wcw").forEach((e) => (e.style.display = !hub || hub.tab === "overview" ? "" : "none"));   // بطاقة الترحيب في «نظرة عامة» فقط
+  setTimeout(wcSync, 600); setTimeout(wcSync, 1500);
   // القائمة الموحدة: شريط أفقي واحد في كل الأحوال (كبقية أنظمة النواة)، يُمرَّر جانبياً إذا لم تتسع الصفحات، والصفحة الحالية تظهر في مجال الرؤية
   { const a = $(".dnav-in a.on"); if (a) a.scrollIntoView({ block: "nearest", inline: "center" }); }
   $("#pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-ca-gregory-nu-latn", { hour: "numeric", minute: "2-digit", timeZone: TZ });
@@ -366,14 +381,14 @@ async function boot(page, render, o = {}) {
   const main = $("#main");
   const draw = async (fn) => { try { await fn(main, ctx); } catch (e) { console.error(e); main.innerHTML = `<p class="err">تعذر تحميل الصفحة: ${esc(mapErr(e))}</p>`; } };
   if (hub) {
-    $(".pagebar").insertAdjacentHTML("beforeend", `<div class="wrap"><div class="subnav" role="navigation" aria-label="الصفحات الفرعية">${hub.tabs.map(([k, n, i]) => `<a href="${hub.page}?tab=${k}" data-tab="${k}">${ico(i)}${n}</a>`).join("")}</div></div>`);
+    if (hub.tabs.length > 1) $(".pagebar").insertAdjacentHTML("beforeend", `<div class="wrap"><div class="subnav" role="navigation" aria-label="الصفحات الفرعية">${hub.tabs.map(([k, n, i]) => `<a href="${hub.page}?tab=${k}" data-tab="${k}">${ico(i)}${n}</a>`).join("")}</div></div>`);
     main.classList.add("hubmain");
     const links = $$(".subnav a");
     const mark = () => { const t = hub.tabs.find((x) => x[0] === hub.tab);
       links.forEach((a) => { const on = a.dataset.tab === hub.tab; a.classList.toggle("on", on); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); if (on) { const sn = a.parentElement; sn.scrollLeft += a.getBoundingClientRect().left - sn.getBoundingClientRect().left - (sn.clientWidth - a.offsetWidth) / 2; } });
       $$("[data-dmtab]").forEach((a) => { const on = a.dataset.dmtab === hub.tab; a.classList.toggle("on", on); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); });
       $(".pb-d").textContent = t[3]; document.title = t[1] + " – " + cur[1] + " – قيمي"; };
-    hub.go = async (fn) => { hub.busy = true; main.innerHTML = ""; mark(); await draw(fn); hub.busy = false; };
+    hub.go = async (fn) => { hub.busy = true; main.innerHTML = ""; mark(); annSync(); wcSync(); await draw(fn); hub.busy = false; };
     links.forEach((a) => (a.onclick = (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); if (hub.busy || a.dataset.tab === hub.tab) return;
       hub.tab = a.dataset.tab; history.pushState(null, "", hub.page + "?tab=" + hub.tab); hub.run(); }));
     addEventListener("popstate", () => location.reload());

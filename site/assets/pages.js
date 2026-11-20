@@ -37,9 +37,10 @@ const PAGES = {
     if (c.isAgent) { QA.forEach((q) => (q[0] = q[0].replace(/^(positive|negative)\.html(\?tab=)?/, (x, pg, t) => "teach.html?tab=" + (t ? "" : pg === "positive" ? "reinforce" : "behavior")))); 
       QA.unshift(["agent.html", "inbox", "صندوق الوكيل", "الوقائع الواردة"], ...(c.canReinforce ? [["award.html", "crown", "منح وسام", "أوسمة الوكيل العامة", 1]] : [])); }
     if (c.isCounselor) QA.push(["counselor.html", "help", "الحالات الإجرائية", "المحالة إليك"]);
-    if (sup) QA.push(["support.html", "help", "المتابعة والدعم", "حالات الدعم التربوي"]);
+    if (sup) QA.push([(c.isAgent ? "agent.html" : "counselor.html") + "?tab=support", "help", "المتابعة والدعم", "حالات الدعم التربوي"]);
     if (c.canReports) QA.push(["reports.html", "chart", "التقارير", "مؤشرات الفترة"]);
-    if (c.isAdmin) QA.push(["perms.html", "key", "الصلاحيات", "التعزيز والسلوك والأدوار"], ["admin.html", "gear", "إدارة البوابة", "النقاط والأوسمة والإعدادات"]);
+    // لوحة المنسق: لا اختصارات لما في القائمة (دليل المتعلمين، التقارير، الصلاحيات، إدارة البوابة)
+    if (c.canSwitch && c.view === "coord") for (let i = QA.length - 1; i >= 0; i--) if (/^(students|reports|support|perms|admin)\.html/.test(QA[i][0])) QA.splice(i, 1);
     // آخر ما جرى: تُجمع عمليات المنح الجماعي (المانح والنوع والوقت نفسه) في سطر واحد
     const ev = [];
     (H.last_points || []).forEach((p) => { const k = ev.find((e) => e.k === "p" && e.at === p.at && e.by === p.by && e.type === p.type && e.points === p.points); if (k) k.n++; else ev.push({ k: "p", n: 1, ...p }); });
@@ -429,8 +430,13 @@ PAGES.admin = () => openHub("admin.html");
 PAGES.adminTab = () => boot("admin.html", async (m, c) => {
   let cur = window.__hub.tab;
   m.innerHTML = `<div id="bd"></div>`;
-  const body = $("#bd"), kinds = [["positive", "إيجابي"], ["negative", "سلبي"]];
-  const draw = async () => { body.innerHTML = '<p class="sub">جارٍ التحميل…</p>';
+  let body = $("#bd"); const kinds = [["positive", "إيجابي"], ["negative", "سلبي"]];
+  const draw = async () => {
+    // «التصنيفات والحالات»: تصنيفات السلوك ثم حالات الواقعة في صفحة واحدة
+    if (cur === "cats" && !draw.both) { const host = $("#bd"); host.innerHTML = '<div id="bdc"></div><h3 class="sec" style="margin-top:26px">حالات الواقعة</h3><div id="bds"></div>';
+      draw.both = 1; try { body = $("#bdc"); await draw(); cur = "stat"; body = $("#bds"); await draw(); } finally { cur = "cats"; body = host; draw.both = 0; } return; }
+    if (cur === "ann") { body.innerHTML = '<p class="sub">أضف الإعلانات وعدّلها وأوقفها من الأقسام أدناه، وتظهر للمستخدمين في أعلى صفحات النظام.</p>'; return; }
+    body.innerHTML = '<p class="sub">جارٍ التحميل…</p>';
     try {
       if (cur === "types") await crud(body, "qm_reinforcement_types", [{ k: "name_ar", l: "الاسم" }, { k: "domain", l: "المجال", t: "select", o: [["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"], ["general", "عام"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "criteria", l: "طريقة الاستحقاق (تظهر للطلاب)" }, { k: "is_active", l: "فعّال", t: "bool" }], [{ k: "name_ar", l: "الاسم", req: 1 }, { k: "domain", l: "المجال", t: "select", o: [["general", "عام"], ["academic", "أكاديمي"], ["behavior", "سلوكي"], ["participation", "مشاركة"], ["leadership", "قيادي"]] }, { k: "default_points", l: "النقاط المقترحة", t: "number" }, { k: "criteria", l: "طريقة الاستحقاق (تظهر للطلاب)" }]);
       else if (cur === "badges") await badgeAdmin(body);
@@ -709,5 +715,9 @@ PAGES.award = () => boot("award.html", async (m, c) => {
   }
   bar();
 }, { role: "agent" });
+// الرئيسية وقسما الوكيل والموجه صارت صفحات مجمّعة: التبويب الأول هو الصفحة الأصلية
+PAGES.overview = PAGES.dashboard; PAGES.dashboard = () => openHub("dashboard.html");
+PAGES.box = PAGES.agent; PAGES.agent = () => openHub("agent.html");
+PAGES.cases = PAGES.counselor; PAGES.counselor = () => openHub("counselor.html");
 PAGES.positive = () => openHub("positive.html");
 PAGES.negative = () => openHub("negative.html");
