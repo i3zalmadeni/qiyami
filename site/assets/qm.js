@@ -314,13 +314,13 @@ async function boot(page, render, o = {}) {
   if (!who) { await doLogout("login.html?e=nostaff"); return; }
   const ctx = { who, uid: session.user.id, isAdmin: who.is_admin, isCoreAdmin: !!who.is_core_admin, isAgent: who.is_agent, isCounselor: who.is_counselor,
     allSections: who.all_sections !== false, mySections: new Set(who.my_sections || []),
-    canReinforce: who.can_reinforce !== false, canBehavior: who.can_behavior !== false, canReports: who.can_reports ?? (who.is_admin || who.is_agent || who.is_counselor),
+    canReinforce: who.can_reinforce !== false, canBehavior: who.can_behavior !== false, canReports: !!(who.is_admin || who.is_agent || who.is_counselor),   // التقارير ليست للمعلم
     role: who.is_agent ? "وكيل شؤون الطلاب" : who.is_counselor ? "الموجه الطلابي" : who.is_admin ? "مدير النواة الرقمية" : "المعلم" };
   // تبديل الدور: منسق قيمي (مدير البوابة أو مدير النواة) يختار بين لوحة المنسق ولوحة المعلم.
   // لوحة المعلم: منح النقاط وتسجيل السلوك فقط. لوحة المنسق: المتابعة والاعتماد والتقارير والإدارة دون المنح والتسجيل الشخصي.
   ctx.canSwitch = !!who.is_admin; ctx.view = window.RoleSwitch ? RoleSwitch.view("qiyami", ctx.uid, ctx.canSwitch) : "coord";
   const asCoord = ctx.canSwitch && ctx.view === "coord";
-  if (ctx.canSwitch && ctx.view === "teacher") Object.assign(ctx, { isAdmin: false, isCoreAdmin: false, isAgent: false, isCounselor: false, canReports: who.can_reports === true, role: "المعلم" });
+  if (ctx.canSwitch && ctx.view === "teacher") Object.assign(ctx, { isAdmin: false, isCoreAdmin: false, isAgent: false, isCounselor: false, canReports: false, role: "المعلم" });
   if (asCoord) Object.assign(ctx, { canReinforce: false, canBehavior: false });
   window.__qm = ctx;
   const ok = (r) => r === "coord" ? asCoord : !(asCoord && ["neg", "teach", "reinforce", "behavior"].includes(r)) && ok0(r);
