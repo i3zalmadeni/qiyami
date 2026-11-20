@@ -13,6 +13,8 @@ const rankRows = (rows, key, val) => { const mx = Math.max(1, ...rows.map((r) =>
 
 const PAGES = {
   dashboard: () => boot("dashboard.html", async (m, c) => {
+    // لوحة المنسق: نظرة شاملة تفاعلية (coord-home.js)
+    if (c.canSwitch && c.view === "coord" && window.coordHome) return coordHome(m, c);
     const nz = (p) => p.catch(() => null);
     const [d, x0, H0, mine, myR, inbox, cases, review] = await Promise.all([
       rpc("qm_dashboard", { p_days: 14 }), nz(rpc("qm_dashboard_ext")), nz(rpc("qm_pub_home")),
