@@ -311,14 +311,22 @@ async function boot(page, render, o = {}) {
     allSections: who.all_sections !== false, mySections: new Set(who.my_sections || []),
     canReinforce: who.can_reinforce !== false, canBehavior: who.can_behavior !== false, canReports: who.can_reports ?? (who.is_admin || who.is_agent || who.is_counselor),
     role: who.is_agent ? "وكيل شؤون الطلاب" : who.is_counselor ? "الموجه الطلابي" : who.is_admin ? "مدير النواة الرقمية" : "المعلم" };
+  // تبديل الدور: منسق قيمي (مدير البوابة أو مدير النواة) يختار بين لوحة المنسق ولوحة المعلم.
+  // لوحة المعلم: منح النقاط وتسجيل السلوك فقط. لوحة المنسق: المتابعة والاعتماد والتقارير والإدارة دون المنح والتسجيل الشخصي.
+  ctx.canSwitch = !!who.is_admin; ctx.view = window.RoleSwitch ? RoleSwitch.view("qiyami", ctx.uid, ctx.canSwitch) : "coord";
+  const asCoord = ctx.canSwitch && ctx.view === "coord";
+  if (ctx.canSwitch && ctx.view === "teacher") Object.assign(ctx, { isAdmin: false, isCoreAdmin: false, isAgent: false, isCounselor: false, canReports: who.can_reports === true, role: "المعلم" });
+  if (asCoord) Object.assign(ctx, { canReinforce: false, canBehavior: false });
   window.__qm = ctx;
-  const ok = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "report" && ctx.canReports) || (r === "reinforce" && ctx.canReinforce) || (r === "behavior" && ctx.canBehavior) || (r === "pos" && !ctx.isAgent) || (r === "neg" && ctx.canBehavior && !ctx.isAgent) || (r === "teach" && ctx.isAgent) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
+  const ok = (r) => !(asCoord && ["neg", "teach", "reinforce", "behavior"].includes(r)) && ok0(r);
+  const ok0 = (r) => r === "all" || (r === "support" && (ctx.isAgent || ctx.isCounselor)) || (r === "report" && ctx.canReports) || (r === "reinforce" && ctx.canReinforce) || (r === "behavior" && ctx.canBehavior) || (r === "pos" && !ctx.isAgent) || (r === "neg" && ctx.canBehavior && !ctx.isAgent) || (r === "teach" && ctx.isAgent) || (r === "agent" && ctx.isAgent) || (r === "counselor" && ctx.isCounselor) || (r === "admin" && ctx.isAdmin);
   // الوكيل: صفحتا السلوك الإيجابي والسلبي مدموجتان في «مهامي معلّماً»، فتُحوَّل روابطهما إليها مع الصفحة الفرعية نفسها
   if (ctx.isAgent && hub && (hub.page === "positive.html" || hub.page === "negative.html")) { const u = new URLSearchParams(location.search); u.set("tab", hub.tab); location.replace("teach.html?" + u); return; }
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
   // الصفحات الفرعية بحسب الصلاحية: ما لا يملكه المستخدم لا يظهر، ومن فتحه برابط يُنقل إلى أول صفحة متاحة
   if (hub) { hub.tabs = hub.tabs.filter((t) => !t[4] || ok(t[4]));
     if (!hub.tabs.some((t) => t[0] === hub.tab)) { location.replace(hub.tabs.length ? hub.page + "?tab=" + hub.tabs[0][0] : "dashboard.html"); return; } }
+  { const ne = NAV.find((n) => n[0] === page); if (ne && !ok(ne[4]) && ctx.canSwitch) { location.replace("dashboard.html"); return; } }   // صفحة لا تخص الدور المختار
   const items = NAV.filter((n) => ok(n[4]));
   if (ctx.isAgent) items.sort((a, b) => AGENT_ORDER.indexOf(a[0]) - AGENT_ORDER.indexOf(b[0]));
   const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
@@ -350,6 +358,7 @@ async function boot(page, render, o = {}) {
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات من جدول qm_notifications (توجَّه للمعنيين فقط)، والمقروء يُحفظ في القاعدة
+  if (window.RoleSwitch) RoleSwitch.mount({ sys: "qiyami", uid: ctx.uid, can: ctx.canSwitch, view: ctx.view, home: { coord: "dashboard.html", teacher: "dashboard.html" }, teacherDesc: "منح النقاط والأوسمة وتسجيل السلوك", coordDesc: "المتابعة والاعتماد والتقارير والإدارة" });
   ubMount({ key: "qm", uid: who.staff_id || who.id, allUrl: "inbox.html", markAll: () => rpc("qm_notifications_read"), load: async () => {
     const L = await rpc("qm_notifications_list", { p_limit: 20 });
     return (L || []).map((x) => ({ id: x.id, t: x.created_at, read: !!x.is_read, title: x.title, body: x.body, href: x.link || "#", icon: "star", tone: "info" }));
