@@ -452,7 +452,7 @@ header.dash .idl .moe{padding-inline-start:14px}
 .subnav a:hover{color:var(--brand2);background:var(--soft)}
 .subnav a.on{color:var(--brand2);border-bottom-color:var(--gold)}
 .subnav a:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
-main.hubmain{padding-top:18px}
+main.hubmain,main#main{padding-top:24px;padding-bottom:32px}
 /* مكتبي الإلكتروني: إجراءات سريعة، مهام، وما يدور في المنصة */
 .qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
 .qa-i{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--ink);text-decoration:none;font-weight:800;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s,border-color .2s}
