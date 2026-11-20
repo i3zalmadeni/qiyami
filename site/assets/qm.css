@@ -629,3 +629,6 @@ main.hubmain,main#main{padding-top:24px;padding-bottom:32px}
 .lf-a{white-space:nowrap}td.lf-a .btn{display:inline-flex;margin:2px}.btn.dng{color:#b42318}.tbl b.neg{color:#b42318}
 @media (max-width:760px){.lf-hero{grid-template-columns:1fr;text-align:center}.lf-av{margin:auto}.lf-id .acts{justify-content:center}.lf-st{justify-content:center;flex-wrap:wrap}}
 .lf-inc{border-inline-start:4px solid #c9d6da}.lf-inc.t-warn{border-inline-start-color:#e9a62b}.lf-inc.t-bad,.lf-inc.t-danger{border-inline-start-color:#d1453b}.lf-inc.t-good,.lf-inc.t-ok{border-inline-start-color:#3aa76d}.lf-inc.t-info{border-inline-start-color:#3a8fa0}
+/* معرض الإنجازات: الفرز */
+.ag-bar{display:flex;flex-direction:column;gap:12px}.ag-fs{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}.ag-f{display:flex;flex-direction:column;gap:4px;margin:0}.ag-f span{font-size:13px;color:var(--ink2,#5b6b70);font-weight:700}
+@media (max-width:760px){.ag-fs{grid-template-columns:1fr 1fr}.ag-q{grid-column:1/-1}}

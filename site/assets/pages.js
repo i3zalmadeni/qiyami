@@ -469,17 +469,37 @@ async function openAchievement(id, done) {
 }
 Object.assign(PAGES, {
   achievements: () => boot("positive.html", async (m, ctx) => {
-    const tabs = [["gallery", "معرض الإنجازات"], ["mine", "إنجازاتي"], ["add", "تسجيل إنجاز"], ["talents", "المواهب"]];
-    if (ctx.isAdmin) tabs.splice(2, 0, ["review", "بانتظار التحقق"]);
-    let cur = new URLSearchParams(location.search).get("t"); if (!tabs.some((t) => t[0] === cur)) cur = "gallery";
+    // التسجيل أولاً، ثم المعرض بالفرز («إنجازاتي» صارت فرزاً داخل المعرض: «ما سجّلتُه أنا»)
+    const tabs = [["add", "تسجيل إنجاز", "trophy"], ["talents", "تسجيل موهبة", "gem"], ["gallery", "معرض الإنجازات", "grid"]];
+    if (ctx.isAdmin) tabs.push(["review", "بانتظار التحقق", "hourglass"]);
+    let cur = new URLSearchParams(location.search).get("t"); if (cur === "mine") cur = "gallery"; if (!tabs.some((t) => t[0] === cur)) cur = "add";
+    const gf = { scope: new URLSearchParams(location.search).get("t") === "mine" ? "mine" : "gallery", q: "", cat: "", lv: "", gr: "" };
     const paint = async () => {
-      m.innerHTML = `<div class="tabs">${tabs.map(([k, n]) => `<button type="button" class="${k === cur ? "on" : ""}" data-t="${k}">${n}</button>`).join("")}</div><div id="tb"></div>`;
+      m.innerHTML = `<div class="tabs">${tabs.map(([k, n, i]) => `<button type="button" class="${k === cur ? "on" : ""}" data-t="${k}">${ico(i)}${n}</button>`).join("")}</div><div id="tb"></div>`;
       $$("[data-t]", m).forEach((b) => (b.onclick = () => { cur = b.dataset.t; paint(); }));
       const tb = $("#tb", m);
-      if (["gallery", "mine", "review"].includes(cur)) {
+      if (cur === "review") {
         const L = await rpc("qm_achievements_list", { p_scope: cur });
-        tb.innerHTML = L.length ? L.map(achItem).join("") : empty("trophy", "لا إنجازات هنا بعد", cur === "gallery" ? "تظهر هنا الإنجازات الموثقة فقط." : "");
+        tb.innerHTML = L.length ? L.map(achItem).join("") : empty("trophy", "لا إنجازات بانتظار التحقق");
         tb.onclick = (e) => { const el = e.target.closest("[data-ach]"); if (el) openAchievement(el.dataset.ach, paint); };
+      } else if (cur === "gallery") {
+        const L = await rpc("qm_achievements_list", { p_scope: gf.scope });
+        const uniq = (f) => [...new Set(L.map(f).filter(Boolean))].sort();
+        const cats = uniq((a) => a.category), grades = [...new Set(L.flatMap((a) => (a.students || []).map((x) => x.grade)).filter(Boolean))].sort();
+        const sel = (id, lab, list, v, names) => `<label class="ag-f"><span>${lab}</span><select id="${id}"><option value="">الكل</option>${list.map((x) => `<option value="${esc(x)}" ${x === v ? "selected" : ""}>${esc(names ? names[x] || x : x)}</option>`).join("")}</select></label>`;
+        tb.innerHTML = `<div class="card ag-bar"><div class="tabs" style="margin:0"><button type="button" data-sc="gallery" class="${gf.scope === "gallery" ? "on" : ""}">الموثقة</button><button type="button" data-sc="mine" class="${gf.scope === "mine" ? "on" : ""}">ما سجّلتُه أنا</button></div>
+            <div class="ag-fs"><label class="ag-f ag-q"><span>بحث</span><input id="gq" type="search" placeholder="عنوان الإنجاز أو اسم المتعلم" value="${esc(gf.q)}"></label>${sel("gc", "التصنيف", cats, gf.cat)}${sel("gl", "المستوى", Object.keys(LV).filter((k) => L.some((a) => a.level === k)), gf.lv, LV)}${sel("gg", "الصف", grades, gf.gr)}</div></div>
+          <p class="sub" id="gn"></p><div id="gli"></div>`;
+        const draw = () => { const q = gf.q.trim();
+          const R = L.filter((a) => (!gf.cat || a.category === gf.cat) && (!gf.lv || a.level === gf.lv) && (!gf.gr || (a.students || []).some((x) => x.grade === gf.gr))
+            && (!q || a.title.includes(q) || (a.students || []).some((x) => (x.name || "").includes(q))));
+          $("#gn", tb).textContent = R.length + " إنجازاً" + (gf.scope === "mine" ? " (ومنها ما ينتظر التحقق)" : "");
+          $("#gli", tb).innerHTML = R.length ? R.map(achItem).join("") : empty("trophy", "لا إنجازات مطابقة", gf.scope === "gallery" ? "يعرض المعرض الإنجازات الموثقة فقط. جرّب تصفية أخرى." : "جرّب تصفية أخرى."); };
+        $$("[data-sc]", tb).forEach((b) => (b.onclick = () => { gf.scope = b.dataset.sc; gf.cat = gf.lv = gf.gr = ""; paint(); }));
+        $("#gq", tb).oninput = (e) => { gf.q = e.target.value; draw(); };
+        [["gc", "cat"], ["gl", "lv"], ["gg", "gr"]].forEach(([id, k]) => ($("#" + id, tb).onchange = (e) => { gf[k] = e.target.value; draw(); }));
+        $("#gli", tb).onclick = (e) => { const el = e.target.closest("[data-ach]"); if (el) openAchievement(el.dataset.ach, paint); };
+        draw();
       } else if (cur === "talents") {
         const [L, st] = [await rpc("qm_talents_list", {}), { s: null }];
         tb.innerHTML = `<div class="card form"><h4 style="margin-top:0">رصد موهبة</h4><label>المتعلم</label><div id="pk"></div><label>المجال</label><input id="tf" maxlength="80" placeholder="مثل: الإلقاء، البرمجة، كرة القدم"><label>الموهبة أو القدرة</label><input id="tn" maxlength="120"><label>وصف (اختياري)</label><textarea id="td" maxlength="500"></textarea><p class="err" id="te"></p><button class="btn" id="ts">حفظ</button></div>
@@ -498,7 +518,7 @@ Object.assign(PAGES, {
         $("#asv").onclick = async () => { const b = $("#asv"); b.disabled = true; try {
           const files = [...$("#af").files].slice(0, 3), paths = []; for (const f of files) paths.push(await uploadFile(f, ctx.uid));
           await rpc("qm_achievement_create", { p_title: $("#at").value, p_category: $("#ac").value, p_date: $("#ad").value, p_level: $("#al").value, p_organizer: $("#ao").value, p_desc: $("#ax").value, p_students: S.map((s) => ({ student_id: s.id, contribution: s.contribution })), p_attachments: paths });
-          toast("أُرسل للتحقق"); cur = "mine"; paint(); } catch (e) { $("#ae").textContent = mapErr(e); b.disabled = false; } };
+          toast("أُرسل للتحقق"); cur = "gallery"; gf.scope = "mine"; paint(); } catch (e) { $("#ae").textContent = mapErr(e); b.disabled = false; } };
       }
     }; await paint();
     const i = new URLSearchParams(location.search).get("i"); if (i) openAchievement(i, paint);
