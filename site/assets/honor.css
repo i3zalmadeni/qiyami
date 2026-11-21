@@ -232,3 +232,35 @@
 .hb-lvp{display:inline-flex;gap:6px;align-items:center;margin-top:10px;padding:5px 14px;border-radius:99px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#ffe9a8;font-weight:800;font-size:.95rem}
 .hb-lvp svg{width:16px;height:16px}
 @media(max-width:560px){.hb-lvs{overflow-x:auto}.hb-lvs li{min-width:78px}.hb-lvn{font-size:1.5rem}}
+/* ===== النمط الداكن (مولَّد بـ tools/dark-gen.py — لا تعدّل يدوياً، أعد التوليد) ===== */
+@media (prefers-color-scheme:dark){
+:where(:root:not([data-theme=light])) .hb-seal{background:radial-gradient(circle at 32% 28%,var(--surface),color-mix(in srgb,var(--m) 78%,var(--surface)) 45%,var(--m))}
+:where(:root:not([data-theme=light])) .hb-panel{background:var(--surface)}
+:where(:root:not([data-theme=light])) .hb-rk{background:color-mix(in srgb,var(--hb-gold) 14%,var(--surface))}
+:where(:root:not([data-theme=light])) .hb-row[data-m="2"] .hb-rk{background:linear-gradient(135deg,#22343f,var(--hb-silver))}
+:where(:root:not([data-theme=light])) .hb-row[data-m="3"] .hb-rk{background:linear-gradient(135deg,#462e1b,var(--hb-bronze))}
+:where(:root:not([data-theme=light])) .hb-bar{background:var(--soft)}
+:where(:root:not([data-theme=light])) .hb-new{background:var(--hb-gold)}
+:where(:root:not([data-theme=light])) .hb-ini{background:linear-gradient(135deg,var(--hb-petrol),var(--hb-teal))}
+:where(:root:not([data-theme=light])) .hb-g{background:var(--surface)}
+:where(:root:not([data-theme=light])) .hb-seg{background:var(--soft)}
+:where(:root:not([data-theme=light])) .hb-pod.lite .hb-pc{background:var(--surface)}
+:where(:root:not([data-theme=light])) .hb-st{background:var(--surface)}
+:where(:root:not([data-theme=light])) .hb-b{background:rgba(255,255,255,.07)}
+:where(:root:not([data-theme=light])) .hb-rc{background:var(--surface)}
+:where(:root:not([data-theme=light])) .hb-bc{background:var(--surface)}
+:where(:root:not([data-theme=light])) .hb-lv{background:var(--surface)}
+:where(:root:not([data-theme=light])) .hb-lvn svg{color:#eacd86}
+:where(:root:not([data-theme=light])) .hb-lvb{background:var(--line)}
+:where(:root:not([data-theme=light])) .hb-st .tags .lv{background:#1b2a46;color:#88b1e7}
+:where(:root:not([data-theme=light])) .hb-lc{background:var(--surface)}
+:where(:root:not([data-theme=light])) .hb-lc .n{background:#20413b;color:#87dce9}
+:where(:root:not([data-theme=light])) .hb-lc small{color:var(--muted)}
+:where(:root:not([data-theme=light])) .hb-lvh small{color:var(--muted)}
+:where(:root:not([data-theme=light])) .hb-lvt b{color:var(--ink)}
+:where(:root:not([data-theme=light])) .hb-lvs li{background:var(--soft);color:var(--muted)}
+:where(:root:not([data-theme=light])) .hb-lvs li.done{background:#1d4438;color:#87dce9}
+:where(:root:not([data-theme=light])) .hb-lvs li.now{background:linear-gradient(135deg,#1a7f8e,#2f9e6b);color:#fff}
+:where(:root:not([data-theme=light])) .hb-lvp{background:rgba(255,255,255,.18);border:1px solid var(--line)}
+}
+/* ===== نهاية النمط الداكن المولَّد ===== */

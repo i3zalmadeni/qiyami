@@ -366,3 +366,85 @@
 .pgh .ax-blob.b1{width:340px;height:340px}
 .pgh .ax-blob.b2{width:280px;height:280px}
 @media print{body.print-about>*:not(main),body.print-about::before,body.print-about .ab-toc,body.print-about .ab-hb,body.print-about .ab-end .btn{display:none!important}body.print-about .ab{gap:16px}body.print-about .ab *{animation:none!important;transition:none!important}body.print-about .ab-hero{box-shadow:none;padding:24px;break-inside:avoid}body.print-about .ab-c,body.print-about .ab-pc,body.print-about .ab-flow li,body.print-about .ab-br,body.print-about details,body.print-about .ab-list li,body.print-about .ab-sh,body.print-about .ab-q{break-inside:avoid;box-shadow:none}body.print-about .ab-sh{break-after:avoid}}
+/* ===== النمط الداكن (مولَّد بـ tools/dark-gen.py — لا تعدّل يدوياً، أعد التوليد) ===== */
+@media (prefers-color-scheme:dark){
+:where(:root:not([data-theme=light])) .ab-btn1{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ab-btn2{background:rgba(255,255,255,.12);border-color:var(--line)}
+:where(:root:not([data-theme=light])) .ab-c{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ab-who .ab-c i .ico{color:var(--acc2ink,#eac186)}
+:where(:root:not([data-theme=light])) .ab-q{background:linear-gradient(135deg,var(--brandsoft),var(--surface));border:1px solid color-mix(in srgb,var(--brand) 30%,var(--line));border-inline-start:6px solid var(--brand)}
+:where(:root:not([data-theme=light])) .ab-end{background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--acc2,#f0a530)}
+:where(:root:not([data-theme=light])) .ab-toc{background:color-mix(in srgb,var(--surface) 88%,transparent);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ab-pc{background:linear-gradient(165deg,color-mix(in srgb,var(--f) 9%,var(--surface)),var(--surface) 60%);border:1px solid var(--line);border-top:5px solid var(--f)}
+:where(:root:not([data-theme=light])) .ab-ring{background:conic-gradient(var(--f) calc(var(--p)*1%),color-mix(in srgb,var(--f) 14%,var(--surface)) 0)}
+:where(:root:not([data-theme=light])) .ab-bar{background:color-mix(in srgb,var(--f) 14%,var(--surface))}
+:where(:root:not([data-theme=light])) .ab-cov{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ab-dm{border:1px dashed var(--line)}
+:where(:root:not([data-theme=light])) .ab-ba{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ab-bar-h{background:var(--soft)}
+:where(:root:not([data-theme=light])) .ab-bar-h span:nth-child(2) .ico{color:var(--bad)}
+:where(:root:not([data-theme=light])) .ab-bar-h span:nth-child(3) .ico{color:var(--ok)}
+:where(:root:not([data-theme=light])) .ab-br{border-top:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-kick{background:color-mix(in srgb,var(--acc2,#f0a530) 12%,var(--surface))}
+:where(:root:not([data-theme=light])) .ax-hero{background:var(--hv);background-size:200% 200%}
+:where(:root:not([data-theme=light])) .ax-grid{background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px)}
+:where(:root:not([data-theme=light])) .ax-dev{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ax-bar i{background:var(--line)}
+:where(:root:not([data-theme=light])) .ax-row{background:#1f3d42}
+:where(:root:not([data-theme=light])) .ax-row span{background:#0f8a94}
+:where(:root:not([data-theme=light])) .ax-row em{background:linear-gradient(90deg,#1d3e43,#1e3d43)}
+:where(:root:not([data-theme=light])) .ax-chart{border-top:1px dashed #355a64}
+:where(:root:not([data-theme=light])) .ax-chart i{background:linear-gradient(180deg,#2bb3b8,#0f8a94)}
+:where(:root:not([data-theme=light])) .ax-fly{background:rgba(255,255,255,.18);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-down{border:2px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-down span{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ax-what{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-what::before{background:var(--grad)}
+:where(:root:not([data-theme=light])) .ax-eqi i{background:var(--brandsoft)}
+:where(:root:not([data-theme=light])) .ax-eqi.res i .ico{color:#fff}
+:where(:root:not([data-theme=light])) .ax-p{border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-c{border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-p{background:color-mix(in srgb,var(--bad) 5%,var(--surface))}
+:where(:root:not([data-theme=light])) .ax-c{background:color-mix(in srgb,var(--ok) 7%,var(--surface))}
+:where(:root:not([data-theme=light])) .ax-p i{background:color-mix(in srgb,var(--bad) 13%,var(--surface))}
+:where(:root:not([data-theme=light])) .ax-c i{background:var(--ok)}
+:where(:root:not([data-theme=light])) .ax-arr{background:var(--grad)}
+:where(:root:not([data-theme=light])) .ax-vc{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-vc::after{background:radial-gradient(circle,color-mix(in srgb,var(--brand) 16%,transparent),transparent 70%)}
+:where(:root:not([data-theme=light])) .ax-vc i{background:var(--grad)}
+:where(:root:not([data-theme=light])) .ax-goals span{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ax-goals span:hover .ico{color:#fff}
+:where(:root:not([data-theme=light])) .ax-node i{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ax-node:hover i .ico{color:#fff}
+:where(:root:not([data-theme=light])) .ax-node b{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ax-fl li{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ax-bt{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-glow2{background:radial-gradient(260px circle at var(--mx) var(--my),color-mix(in srgb,var(--brand) 13%,transparent),transparent 60%)}
+:where(:root:not([data-theme=light])) .ax-bt i{background:var(--brandsoft)}
+:where(:root:not([data-theme=light])) .ax-bt:hover i .ico{color:#fff}
+:where(:root:not([data-theme=light])) .ax-bt.w2:first-child p{color:rgba(255,255,255,.9)}
+:where(:root:not([data-theme=light])) .ax-bt.acc i .ico{color:#fff}
+:where(:root:not([data-theme=light])) .ax-hub-c{background:var(--grad)}
+:where(:root:not([data-theme=light])) .ax-hn i{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ax-wl li{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ax-wl i{background:var(--brandsoft)}
+:where(:root:not([data-theme=light])) .ax-bar2>b{background:var(--surface)}
+:where(:root:not([data-theme=light])) .ax-sw{background:var(--grad)}
+:where(:root:not([data-theme=light])) .ax-jc{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-jc i{background:var(--grad)}
+:where(:root:not([data-theme=light])) .ax-ly{background:linear-gradient(135deg,color-mix(in srgb,#0b5f73 calc(100% - var(--z)*18%),#2bb3b8),color-mix(in srgb,#0f8a94 calc(100% - var(--z)*15%),#7dd6d2))}
+:where(:root:not([data-theme=light])) .ax-ly i{background:rgba(255,255,255,.18)}
+@media (max-width:700px){:where(:root:not([data-theme=light])) .ax-bar2{background:var(--surface);border:1px solid var(--line)}}
+:where(:root:not([data-theme=light])) .ax-wire span{background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--brand) 35%,transparent) 0 10px,transparent 10px 18px)}
+:where(:root:not([data-theme=light])) .ax-wire i{background:var(--acc2,#f0a530)}
+:where(:root:not([data-theme=light])) .ax-nd{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ax-ndi i{background:var(--grad);border:6px solid var(--bg,#306069)}
+:where(:root:not([data-theme=light])) .ax-ndi em{background:var(--acc2,#f0a530);border:3px solid var(--surface)}
+:where(:root:not([data-theme=light])) .ax-nd small{color:var(--acc2,#eac486)}
+:where(:root:not([data-theme=light])) .ax-nd p{color:var(--ink2)}
+:where(:root:not([data-theme=light])) .ax-chips span{color:var(--brand2);background:var(--brandsoft)}
+:where(:root:not([data-theme=light])) .ax-sec span{background:color-mix(in srgb,var(--ok) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--ok) 28%,var(--line));color:var(--ink)}
+:where(:root:not([data-theme=light])) .ax .ab-end>div:first-child{border-color:#6b572e!important}
+:where(:root:not([data-theme=light])) .ax .ab-end .btn{background:var(--surface)}
+}
+/* ===== نهاية النمط الداكن المولَّد ===== */

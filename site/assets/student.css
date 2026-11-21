@@ -136,3 +136,53 @@
   .ms-tl .pv{grid-column:2;text-align:start;margin-top:-4px}
   .ms-tl .pv small{display:inline;margin-inline-start:4px}
 }
+/* ===== النمط الداكن (مولَّد بـ tools/dark-gen.py — لا تعدّل يدوياً، أعد التوليد) ===== */
+@media (prefers-color-scheme:dark){
+:where(:root:not([data-theme=light])) .ms-av{background:conic-gradient(from 210deg,#463c1b,#f0b34a,#c8922f,#463c1b,#f0b34a,#463c1b)}
+:where(:root:not([data-theme=light])) .ms-tag{background:rgba(255,255,255,.16);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ms-tag.g{background:linear-gradient(135deg,#463c1b,#f0b34a);border-color:#6b5a2e;color:var(--ink)}
+:where(:root:not([data-theme=light])) .ms-st{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}
+:where(:root:not([data-theme=light])) .ms-st .ic{background:rgba(255,255,255,.14);color:#fff}
+:where(:root:not([data-theme=light])) .ms-st.gold{background:linear-gradient(135deg,rgba(255,225,150,.32),rgba(240,179,74,.12));border-color:#6b5a2e}
+:where(:root:not([data-theme=light])) .ms-st.gold .ic{background:linear-gradient(135deg,#463c1b,#f0b34a);color:var(--ink)}
+:where(:root:not([data-theme=light])) .ms-rk{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ms-rk .ic{background:var(--soft);color:var(--brand2)}
+:where(:root:not([data-theme=light])) .ms-rk.top{border:1.5px solid #e2c46b;background:linear-gradient(135deg,var(--ms-card2),var(--surface) 70%)}
+:where(:root:not([data-theme=light])) .ms-rk.top .ic{background:linear-gradient(135deg,#463c1b,#f0b34a);color:var(--ink)}
+:where(:root:not([data-theme=light])) .ms-chips button[aria-pressed="true"]{background:linear-gradient(135deg,#463c1b,#f0b34a);color:var(--ink)}
+:where(:root:not([data-theme=light])) .ms-more:focus-visible{outline:3px solid var(--ms-gold)}
+:where(:root:not([data-theme=light])) .ms-badge{border:3px solid transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,
+             linear-gradient(145deg,#fbe39a,#c8922f 28%,#463c1b 50%,#a8761c 74%,#f0c46a) border-box}
+:where(:root:not([data-theme=light])) .ms-kind{background:#46391b;color:#eac886;border:1px solid color-mix(in srgb,var(--ms-gold2) 45%,transparent)}
+:where(:root:not([data-theme=light])) .ms-badge h3{color:var(--ink)}
+:where(:root:not([data-theme=light])) .ms-pts{background:linear-gradient(135deg,#463c1b,#f0b34a);color:var(--ink)}
+:where(:root:not([data-theme=light])) .ms-crit{color:var(--muted)}
+:where(:root:not([data-theme=light])) .ms-badge time{color:var(--muted)}
+:where(:root:not([data-theme=light])) .ms-by{background:linear-gradient(90deg,#a8761c,#f0c46a 22%,#463c1b 50%,#f0c46a 78%,#a8761c);color:var(--ink);border-top:1px solid #6b5a2e}
+:where(:root:not([data-theme=light])) .ms-badge::after{background:linear-gradient(115deg,transparent 35%,color-mix(in srgb,var(--surface) 55%,transparent) 50%,transparent 65%)}
+:where(:root:not([data-theme=light])) .ms-none{border:2px dashed color-mix(in srgb,var(--ms-gold2) 50%,var(--line));background:var(--ms-card)}
+:where(:root:not([data-theme=light])) .ms-none b{color:var(--ink)}
+:where(:root:not([data-theme=light])) .ms-none p{color:var(--muted)}
+:where(:root:not([data-theme=light])) .ms-tl::before{background:linear-gradient(var(--ms-gold),color-mix(in srgb,var(--brand) 40%,var(--line)))}
+:where(:root:not([data-theme=light])) .ms-dot{background:var(--surface);border:2px solid #e2c46b;color:var(--ms-gold2)}
+:where(:root:not([data-theme=light])) .ms-tl .bd{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ms-tl .bd b{color:var(--ink)}
+:where(:root:not([data-theme=light])) .ms-tl .bd small{color:var(--muted)}
+:where(:root:not([data-theme=light])) .ms-tl .pv{color:var(--ms-gold3)}
+:where(:root:not([data-theme=light])) .ms-tl .pv small{color:var(--muted)}
+:where(:root:not([data-theme=light])) .ms-more{border:1.5px solid var(--line);background:var(--surface);color:var(--brand2)}
+:where(:root:not([data-theme=light])) .ms-mo{background:var(--surface);border:1px solid var(--line)}
+:where(:root:not([data-theme=light])) .ms-mo b{color:var(--ink)}
+:where(:root:not([data-theme=light])) .ms-mo i{background:linear-gradient(180deg,#3fb3b9,#0f8a94)}
+:where(:root:not([data-theme=light])) .ms-mo div.now i{background:linear-gradient(180deg,#463c1b,#f0b34a 40%,#c8922f)}
+:where(:root:not([data-theme=light])) .ms-mo span{color:var(--muted)}
+}
+/* ===== نهاية النمط الداكن المولَّد ===== */
+
+/* ===== النمط الداكن: تعديلات يدوية (تبقى عند إعادة التوليد) ===== */
+@media (prefers-color-scheme:dark){
+  html .ms-by{background:linear-gradient(90deg,#a8761c,#f0c46a 22%,#fff1c1 50%,#f0c46a 78%,#a8761c);color:#33240a;border-top-color:#f7d98b}
+  html .ms-by small,html .ms-by b{color:#33240a}
+  html .ms-chips button[aria-pressed="true"]{background:linear-gradient(135deg,#fff1c1,#f0b34a);color:#3d2a05}
+  html .ms-kind{color:#f0b75a}
+}
